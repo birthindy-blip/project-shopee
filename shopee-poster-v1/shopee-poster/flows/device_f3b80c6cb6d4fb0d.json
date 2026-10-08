@@ -1,0 +1,214 @@
+[
+  {
+    "id": "open_app",
+    "do": "start_app",
+    "say": "เปิดแอป Shopee"
+  },
+  {
+    "id": "video_tab",
+    "do": "tap",
+    "say": "ไปแท็บวิดีโอ (Shopee Video)",
+    "timeout": 20,
+    "find": [
+      {
+        "desc": "tab_bar_button_video_and_live"
+      },
+      {
+        "text": "Live & Video"
+      },
+      {
+        "textRegex": "^(Video|วิดีโอ|Shopee Video)$"
+      },
+      {
+        "descRegex": "(?i)^(video|วิดีโอ|shopee video)"
+      }
+    ]
+  },
+  {
+    "id": "create",
+    "do": "tap",
+    "say": "กดปุ่มสร้าง/อัปโหลดวิดีโอ (มักเป็น + หรือรูปกล้อง มุมขวาบน)",
+    "find": [
+      {
+        "desc": "click top right create icon"
+      },
+      {
+        "descRegex": "(?i)(create|upload|สร้าง|อัปโหลด|โพสต์วิดีโอ|ถ่ายวิดีโอ)"
+      },
+      {
+        "idRegex": "(?i)(create|upload|camera|publish)"
+      },
+      {
+        "textRegex": "^(\\+|สร้าง|อัปโหลด|สร้างวิดีโอ)$"
+      }
+    ]
+  },
+  {
+    "id": "gallery",
+    "do": "tap",
+    "say": "เปิดคลังวิดีโอในเครื่อง (อัปโหลด/อัลบั้ม)",
+    "find": [
+      {
+        "id": "com.shopee.th:id/ll_gallery_entrance"
+      },
+      {
+        "textRegex": "^(อัปโหลด|Upload|คลังภาพ|อัลบั้ม|แกลเลอรี|Gallery|Album)$"
+      },
+      {
+        "descRegex": "(?i)(gallery|album|upload|อัลบั้ม|คลังภาพ|แกลเลอรี)"
+      }
+    ]
+  },
+  {
+    "id": "pick_video",
+    "do": "tap",
+    "say": "เลือกคลิปงานนี้จากอัลบั้มเฉพาะ",
+    "find": [
+      {
+        "idRegex": "(?i)(thumb|media_item|photo_item|grid_item|video_item|item_image|iv_cover)",
+        "index": 0
+      }
+    ]
+  },
+  {
+    "id": "next1",
+    "do": "tap",
+    "say": "กด ถัดไป",
+    "find": [
+      {
+        "id": "com.shopee.th:id/tv_pick_top_next"
+      },
+      {
+        "id": "com.shopee.th:id/tv_pick_next"
+      },
+      {
+        "textRegex": "^(ถัดไป|Next|ต่อไป|ยืนยัน|เสร็จสิ้น|Done)(\\s*\\(\\d+\\))?$"
+      }
+    ]
+  },
+  {
+    "id": "next2",
+    "do": "tap",
+    "say": "กด ถัดไป (หน้าตัดต่อ ถ้ามี)",
+    "optional": false,
+    "timeout": 10,
+    "find": [
+      {
+        "textRegex": "^(ถัดไป|Next|ต่อไป)$"
+      }
+    ]
+  },
+  {
+    "id": "caption",
+    "do": "type",
+    "value": "{caption_full}",
+    "say": "ใส่แคปชัน + แฮชแท็ก",
+    "find": [
+      {
+        "class": "android.widget.EditText",
+        "textRegex": "(คำอธิบาย|แคปชัน|เขียน|description|caption|say something)",
+        "index": 0
+      },
+      {
+        "class": "android.widget.EditText",
+        "index": 0
+      }
+    ]
+  },
+  {
+    "id": "add_product",
+    "do": "tap",
+    "say": "กด เพิ่มสินค้า (ปักตะกร้า)",
+    "find": [
+      {
+        "idRegex": ":id/ll_add_product_symbol$"
+      },
+      {
+        "textRegex": "(เพิ่มสินค้า|Add product|Add products|ติดตะกร้า|แท็กสินค้า|Tag product)"
+      },
+      {
+        "descRegex": "(?i)(add product|เพิ่มสินค้า|ตะกร้า)"
+      }
+    ]
+  },
+  {
+    "id": "product_link",
+    "do": "tap",
+    "say": "เปิดเพิ่มสินค้าด้วยลิงก์",
+    "find": [
+      {
+        "class": "android.widget.ImageView",
+        "pos": [
+          0.931,
+          0.062
+        ]
+      }
+    ]
+  },
+  {
+    "id": "search_product",
+    "do": "type",
+    "value": "{search}",
+    "submit": false,
+    "say": "ค้นสินค้า (วางลิงก์ affiliate หรือชื่อสินค้า)",
+    "find": [
+      {
+        "class": "android.widget.EditText",
+        "textRegex": "(ค้นหา|search|ลิงก์|link|วาง)",
+        "index": 0
+      },
+      {
+        "class": "android.widget.EditText",
+        "index": 0
+      }
+    ]
+  },
+  {
+    "id": "import_product",
+    "do": "tap",
+    "say": "นำเข้าสินค้าจากลิงก์ที่ตรวจแล้ว",
+    "find": [
+      {
+        "text": "นำเข้า"
+      }
+    ]
+  },
+  {
+    "id": "choose_product",
+    "do": "tap",
+    "say": "เลือกสินค้าที่รหัสตรงกับลิงก์",
+    "timeout": 20,
+    "find": [
+      {
+        "textRegex": "^(เพิ่ม|Add|เลือก|Select|\\+)$",
+        "index": 0
+      }
+    ],
+    "fallback_search": true
+  },
+  {
+    "id": "confirm_product",
+    "do": "tap",
+    "say": "ยืนยันสินค้าที่เลือก (ถ้ามี)",
+    "optional": true,
+    "timeout": 8,
+    "find": [
+      {
+        "textRegex": "^(ยืนยัน|เสร็จสิ้น|เสร็จ|Done|Confirm|ตกลง)$"
+      },
+      {
+        "textRegex": "^(เพิ่มสินค้า|เพิ่ม|Add)\\s*\\(\\d+\\)$"
+      }
+    ]
+  },
+  {
+    "id": "post",
+    "do": "post",
+    "say": "กด โพสต์",
+    "find": [
+      {
+        "textRegex": "^(โพสต์|Post|เผยแพร่|Publish|อัปโหลด|Upload)$"
+      }
+    ]
+  }
+]

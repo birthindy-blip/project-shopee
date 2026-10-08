@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Shopee Video ผู้ช่วยทำคลิป (meta.ai)",
+  "version": "0.22.0",
+  "description": "ผู้ช่วยทำคลิป Shopee Video: ส่งสินค้าจาก Shopee Affiliate เข้าคิว (พร้อมลิงก์) → Gemini เขียนบท → รันคิวบน meta.ai อัตโนมัติ (ใส่ prompt + รูป → ส่ง → รอคลิป → ดาวน์โหลด) 10 / 15 / 20 วิ",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "downloads"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.meta.ai/*",
+        "https://meta.ai/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://affiliate.shopee.co.th/*",
+        "https://shopee.co.th/*"
+      ],
+      "js": [
+        "shopee.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": [
+    "https://*.susercontent.com/*",
+    "https://*.shopee.co.th/*",
+    "https://*.shopeemobile.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

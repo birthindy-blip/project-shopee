@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Shopee Video โพสต์ช่วย (Android ต่อสาย USB)
+
+เอาคลิปจาก Downloads/ShopeeVideo (ที่ extension meta-helper โหลดไว้ พร้อมไฟล์ .txt แคปชัน/แฮชแท็ก/ลิงก์)
+ส่งเข้ามือถือ แล้วกดแอป Shopee ให้: เลือกคลิป → ใส่แคปชัน → ปักตะกร้าสินค้า → กดโพสต์ (หรือให้เรากดเอง)
+
+- ขั้นตอนเก็บใน flow.json — หาปุ่มไม่เจอ โปรแกรมจะแสดงรายการปุ่มบนจอมือถือให้เลือก แล้วจำไว้ใช้ครั้งต่อไป (โหมดสอน)
+- ค่าเริ่มต้น: เตรียมให้ครบ แล้วให้เรากดโพสต์เอง (auto_post = false ใน settings.json)
+"""
+import datetime
+import json
+import os
+import random
+import re
+import shutil
+import sys
+import time
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+SETTINGS_FILE = HERE / 'settings.json'
+FLOW_FILE = HERE / 'flow.json'
+FLOW_DEFAULT = HERE / 'flow.default.json'
+POSTED_FILE = HERE / 'posted.json'
+DUMP_DIR = HERE / 'dumps'
+PKG = 'com.shopee.th'
+
+DEFAULT_SETTINGS = {
+    'clips_folder': str(Path.home() / 'Downloads' / 'ShopeeVideo'),
+    'auto_post': False,            # true = โปรแกรมกดโพสต์เอง · false = เตรียมให้ครบ แล้วเรากดโพสต์เอง
+    'daily_limit': 8,              # โพสต์ไม่เกินวันละกี่คลิป (กันโดนมองว่าเป็นบอท)
+    'delay_minutes': [4, 9],       # พักแบบสุ่มระหว่างคลิป (นาที)
+    'product_search': 'link',      # ค้นสินค้าตอนปักตะกร้าด้วย link (ลิงก์ affiliate) หรือ name (ชื่อสินค้า)
+    'delete_after_post': True,     # ลบคลิปที่ส่งเข้ามือถือ (เฉพาะไฟล์ของโปรแกรมนี้) หลังโพสต์รอบถัดไป
+    'phone_folder': '/sdcard/DCIM/ShopeeVideo',
+    'popups': ['อนุญาต', 'Allow', 'ขณะใช้แอป', 'While using the app', 'อนุญาตทั้งหมด', 'Allow all',
+               'ตกลง', 'OK', 'เข้าใจแล้ว', 'Got it', 'รับทราบ'],
+    'serial': '',                  # ถ้าต่อมือถือหลายเครื่อง ใส่ serial ของเครื่องที่จะใช้
+}
+
+USB_HELP = """
+วิธีเปิดให้คอมคุมมือถือได้ (ทำครั้งเดียว):
+  1) ตั้งค่า → เกี่ยวกับโทรศัพท์ → แตะ "หมายเลขบิลด์" (Build number) 7 ครั้ง จนขึ้นว่าเป็นนักพัฒนาแล้ว
+  2) ตั้งค่า → ตัวเลือกสำหรับนักพัฒนา → เปิด "การแก้ไขข้อบกพร่อง USB" (USB debugging)
+     · Xiaomi/Redmi/POCO: เปิด "การแก้ไขข้อบกพร่อง USB (การตั้งค่าความปลอดภัย)" ด้วย
+  3) เสียบสาย USB (ใช้สายที่ส่งข้อมูลได้ ไม่ใช่สายชาร์จอย่างเดียว) → บนมือถือกด "อนุญาต" + ติ๊ก "อนุญาตจากคอมนี้เสมอ"
+"""
+
