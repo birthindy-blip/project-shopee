@@ -34,7 +34,10 @@
     "https://*.susercontent.com/*",
     "https://*.shopee.co.th/*",
     "https://*.shopeemobile.com/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://graph.facebook.com/*",
+    "https://rupload.facebook.com/*",
+    "http://127.0.0.1:8765/*"
   ],
   "background": {
     "service_worker": "background.js"

@@ -148,7 +148,7 @@
   }
 
   // บรรทัดที่ไม่ใช่ชื่อสินค้า (ราคา ยอดขาย ค่าคอม ป้าย ปุ่ม)
-  const NOT_NAME = /^(฿|อัตราค่าคอม|ค่าคอม|ขายได้|ขายแล้ว|EXTRA\s*COMM|Mall|Preferred|เอา\s*ลิงก์|รับลิงก์|get link|＋ คิวคลิป|✓ ในคิว|กำลังเพิ่ม)/i;
+  const NOT_NAME = /^(฿|อัตราค่าคอม|ค่าคอม|คอมมิชชั่น|ขายได้|ขายแล้ว|E?XTRA\s*COMM|COMMISSIONS?\s*E?XTRA|Mall|Preferred|เอา\s*ลิงก์|รับลิงก์|get link|＋ คิวคลิป|✓ ในคิว|กำลังเพิ่ม)/i;
 
   // ทำ URL ให้เต็ม: //x → https://x, http → https, รับ data:/blob: ที่เป็นรูปจริง
   function normUrl(u) {
@@ -184,13 +184,14 @@
     const bg = [...card.querySelectorAll('div, span, a, picture')]
       .filter((x) => x.getBoundingClientRect().width >= 80)
       .map((x) => normUrl(bgUrl(x))).filter((u) => u && !/icon|logo|badge|sprite/i.test(u.slice(0, 300)));
-    const commission = (text.match(/ค่าคอม\S*\s*([\d.]+\s*%)/) || [])[1] || '';
+    const commission = (text.match(/ค่าคอม(?!\S*พิเศษ)\S*\s*(?:สูงสุด\s*)?([\d.]+\s*%)/) || [])[1] || ''; // ไม่เอา "ค่าคอมพิเศษ" มาเป็นค่าคอมปกติ
     const price = (text.match(/฿\s*[\d,.]+/) || [])[0] || '';
     const a = card.querySelector('a[href*="shopee.co.th"], a[href*="-i."]');
     return { imgCount: card.querySelectorAll('img').length, name: name.replace(/\s*…$/, ''), imageUrls: [...new Set([...imgs, ...bg])].slice(0, 2), commission, price, productUrl: a ? a.href : '' };
   }
 
   let lastLinkCard = null; // ชื่อสินค้าของการ์ดที่เพิ่งกด "เอา ลิงก์"
+  let linkBefore = new Set(); // ลิงก์ที่อยู่บนหน้าอยู่แล้วก่อนกด (ป๊อปอัปของตัวก่อนค้างอยู่) — ไม่เอามาเป็นลิงก์ของตัวนี้
 
   function decorateAffiliate() {
     for (const btn of document.querySelectorAll('button, a, div[role=button], span')) {
@@ -198,7 +199,7 @@
       const card = cardOf(btn);
       if (!card || card.querySelector('.mah-queue-btn')) continue;
       btn.dataset.mahDone = '1';
-      btn.addEventListener('click', () => { lastLinkCard = readCard(card).name; }, true);
+      btn.addEventListener('click', () => { lastLinkCard = readCard(card).name; linkBefore = new Set(linksNow()); }, true);
       const q = document.createElement('button');
       q.className = 'mah-queue-btn';
       q.type = 'button';
@@ -216,6 +217,7 @@
         q.disabled = true;
         q.textContent = 'กำลังเพิ่ม...';
         lastLinkCard = item.name;
+        linkBefore = new Set(linksNow());
         fetchDescLater(item.name, item.productUrl);
         btn.click(); // เปิดหน้าต่าง "เอา ลิงก์" เพื่อเก็บลิงก์ affiliate (ระหว่างรอรูป)
         let r;
@@ -241,14 +243,11 @@
   // ดักลิงก์ affiliate ที่ Shopee สร้างให้ (ในหน้าต่างป๊อปอัป)
   async function captureLink() {
     if (!lastLinkCard) return;
-    const fields = [...document.querySelectorAll('input, textarea')].map((i) => i.value);
-    const texts = [...document.querySelectorAll('[role=dialog], .shopee-modal, [class*="modal" i], [class*="popup" i]')]
-      .map((d) => d.innerText || '');
-    const m = [...fields, ...texts].join('\n').match(LINK_RE);
-    if (!m) return;
+    const link = linksNow().find((l) => !linkBefore.has(l)); // เฉพาะลิงก์ที่เพิ่งขึ้นหลังกด
+    if (!link) return;
     const name = lastLinkCard;
     lastLinkCard = null;
-    if (await setLinkFor(name, m[0])) toast(`เก็บลิงก์แล้ว ✓ ${m[0]}`);
+    if (await setLinkFor(name, link)) toast(`เก็บลิงก์แล้ว ✓ ${link}`);
   }
 
   // ---------- หน้าสินค้า Shopee ปกติ ----------
@@ -317,6 +316,307 @@
       toast(`${r.existed ? 'อัปเดต' : 'เพิ่มเข้าคิว'}: ${item.name.slice(0, 40)} · รูป ${r.product.images.length}`);
     };
     document.body.appendChild(b);
+  }
+
+  // ---------- ค้นหาให้แผงบน meta.ai (แท็บ Affiliate เบื้องหลัง · ไม่ต้องใช้ Open API) ----------
+  // background เปิดหน้าข้อเสนอผลิตภัณฑ์ไว้ แล้วสั่งผ่านข้อความ: affSearch (พิมพ์คำค้น → อ่านการ์ด) · affLink (กด "เอา ลิงก์" → ส่งลิงก์กลับ)
+  const onAffiliate = () => location.hostname.startsWith('affiliate.') && !/login/i.test(location.pathname);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const shownEl = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const labelOf = (e) => `${e.getAttribute('placeholder') || ''} ${e.getAttribute('aria-label') || ''} ${e.innerText || ''}`.trim();
+  function searchInput() {
+    return [...document.querySelectorAll('input')].filter((i) => !/hidden|checkbox|radio|file/.test(i.type) && shownEl(i))
+      .find((i) => /ค้นหา|search|ชื่อสินค้า/i.test(labelOf(i))) || null;
+  }
+  function pageCards() { // การ์ดสินค้าทุกใบที่มีปุ่ม "เอา ลิงก์"
+    const seen = new Set(), out = [];
+    for (const b of document.querySelectorAll('button, a, div[role=button], span')) {
+      if (!GET_LINK_RE.test((b.innerText || '').trim()) || b.children.length > 2) continue;
+      const card = cardOf(b);
+      if (card && !seen.has(card)) { seen.add(card); out.push({ card, btn: b }); }
+    }
+    return out;
+  }
+  const cardSig = () => pageCards().slice(0, 4).map((x) => readCard(x.card).name).join('|');
+  async function waitResults(before, ms) { // รอผลค้นหาเปลี่ยนแล้วนิ่ง · ไม่มีการ์ดเลยนิ่ง 3 วิ = ไม่เจอ
+    const end = Date.now() + ms;
+    let prev = null, stable = 0;
+    while (Date.now() < end) {
+      await sleep(500);
+      const s = cardSig();
+      if (s === prev && (s !== before || !s)) { if (++stable >= (s ? 2 : 6)) return true; } else stable = 0;
+      prev = s;
+    }
+    return false;
+  }
+  // ป้ายคอมพิเศษจากร้าน: "XTRA COMM" / "Commissions XTRA" / "คอมมิชชั่นพิเศษ" / "ค่าคอมพิเศษ" / ป้าย "XTRA" เดี่ยวๆ (ข้อความหรือรูป)
+  // ไม่ดูในชื่อสินค้า (กัน "Extra Virgin", "Extra Large") · ไม่นับ "ส่งฟรี Xtra" / "Coins Cashback Xtra"
+  const XTRA_TAG = String.raw`(?:e?xtra\s*comm\w*|comm\w*\s*e?xtra|คอม(?:มิชชั่น|มิชชัน)?\s*(?:พิเศษ|e?xtra))`;
+  const XTRA_RE = new RegExp(String.raw`${XTRA_TAG}|^\s*\+?\s*e?xtra\s*(?:\+?\s*\d+(?:\.\d+)?\s*%)?\s*$`, 'im');
+  const XTRA_PCT_RE = new RegExp(String.raw`(?:${XTRA_TAG}|^\s*\+?\s*e?xtra)\s*[:+]?\s*(?:สูงสุด|up\s*to)?\s*\+?\s*(\d+(?:\.\d+)?)\s*%`, 'im');
+  const NOT_XTRA_LINE = /ส่งฟรี|free\s*ship|coin|เหรียญ|cashback|แคชแบ็ก/i;
+  const NOT_TAG = /^(฿|เอา\s*ลิงก์|รับลิงก์|get link|＋ คิวคลิป|✓ ในคิว|กำลังเพิ่ม|ขาย(?:ได้|แล้ว))/i;
+  function readResult({ card }) {
+    const c = readCard(card), text = card.innerText || '';
+    const cut = (l) => l.replace(/\s*(…|\.\.\.)$/, '');
+    // บรรทัดอื่นที่ไม่ใช่ชื่อสินค้า (ชื่อบนการ์ดมักถูกตัดด้วย …)
+    const rest = text.split('\n').map((l) => l.trim()).filter((l) => l && !(c.name && cut(l) && (c.name.startsWith(cut(l)) || cut(l).startsWith(c.name))));
+    const tagText = rest.filter((l) => !NOT_XTRA_LINE.test(l)).join('\n');
+    const badgeImg = [...card.querySelectorAll('img')].some((i) => {
+      const alt = i.getAttribute('alt') || '';
+      return /xtra/i.test(`${alt.length <= 30 ? alt : ''} ${(i.getAttribute('src') || '').slice(0, 300)}`) && !NOT_XTRA_LINE.test(alt);
+    });
+    const xm = tagText.match(XTRA_PCT_RE);
+    return {
+      name: c.name, image: fullImage(c.imageUrls[0] || ''), price: c.price, commission: c.commission, productUrl: c.productUrl,
+      isExtra: XTRA_RE.test(tagText) || badgeImg, extra: xm ? `${+xm[1]}%` : '',
+      sold: ((text.match(/ขาย(?:ได้|แล้ว)\s*([\d.,]+\s*(?:พัน|หมื่น|แสน|ล้าน|k)?)/i) || [])[1] || '').trim(),
+      // ป้ายสั้นๆ บนการ์ด (ไว้บอกผู้ใช้เมื่อหา Extra Comm ไม่เจอ — หน้าเว็บอาจเปลี่ยนคำบนป้าย)
+      tags: rest.filter((l) => l.length <= 30 && !NOT_TAG.test(l)).slice(0, 6),
+    };
+  }
+  async function results() {
+    const list = pageCards();
+    for (const x of list.slice(0, 40)) { // รูปแบบ lazy-load: เลื่อนให้เห็นก่อนถึงจะได้ลิงก์รูปจริง
+      if (readCard(x.card).imageUrls.length) continue;
+      x.card.scrollIntoView({ block: 'center' });
+      await sleep(150);
+    }
+    return list.map(readResult).filter((x) => x.name);
+  }
+  const pageInfo = () => {
+    const all = [...document.querySelectorAll('input')], shown = all.filter(shownEl);
+    return `หน้า ${location.pathname} · แท็บ${document.visibilityState === 'visible' ? 'เปิดดูอยู่' : 'อยู่เบื้องหลัง'} · ช่องพิมพ์ ${shown.length}/${all.length}`
+      + `${shown.length ? `: ${shown.map((i) => `“${(i.placeholder || i.type).slice(0, 25)}”`).join(', ')}` : ''} · ปุ่มเอาลิงก์ ${pageCards().length}`
+      + ` · บนหน้า: “${(document.body.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 80)}”`;
+  };
+  // หน้า Affiliate เป็นเว็บแอป วาดเนื้อหาหลังเปิดหน้า (แท็บเบื้องหลังยิ่งช้า) → รอให้ช่องค้นหา/การ์ดขึ้นก่อน
+  async function waitReady(ms) {
+    const end = Date.now() + ms;
+    while (Date.now() < end && !searchInput() && !pageCards().length) await sleep(500);
+    return !!(searchInput() || pageCards().length);
+  }
+
+  // ปุ่มเรียงลำดับของหน้าข้อเสนอผลิตภัณฑ์ (แท็บ / ปุ่ม / <select> / dropdown "เรียงตาม") — ไม่รู้คำบนหน้าแน่ชัด → จับหลายแบบ
+  // ไม่นับป้าย "ขายดี" บนการ์ดสินค้า · ไม่กดเมนูข้าง/ลิงก์ที่พาไปหน้าอื่น
+  const SORT_RE = {
+    sales: /^(ขายดี(?:ที่สุด)?|ยอดขาย(?:สูงสุด)?|สินค้าขายดี|top\s*sales?|best\s*sell(?:ing|ers?)|sales)$/i,
+    relevance: /^(เกี่ยวข้อง|ความเกี่ยวข้อง|เกี่ยวข้องที่สุด|relevan(?:ce|t)|most\s*relevant)$/i,
+  };
+  const textOf = (e) => (e.textContent || '').replace(/\s+/g, ' ').trim();
+  const isActive = (e) => [e, e.parentElement].some((x) => x && (/(^|[\s_-])(active|selected|current|checked)([\s_-]|$)/i.test(String(x.className))
+    || ['aria-selected', 'aria-checked', 'aria-pressed', 'aria-current'].some((a) => x.getAttribute(a) === 'true')));
+  const leavesPage = (a) => { // ลิงก์ที่พาไปหน้าอื่น (ไม่ใช่ # / หน้าข้อเสนอผลิตภัณฑ์เดิม)
+    const h = a && a.getAttribute('href');
+    if (!h || h.startsWith('#') || /^javascript:/i.test(h)) return false;
+    try { return !/product_offer/.test(new URL(h, location.href).pathname); } catch (x) { return false; }
+  };
+  function sortControl(re) {
+    const cards = pageCards().map((x) => x.card);
+    const hits = [...document.querySelectorAll('button, [role=tab], [role=button], [role=option], [role=menuitem], [role=radio], li, a, label, span, div')]
+      .filter((e) => { const t = textOf(e); return t.length <= 30 && re.test(t) && shownEl(e); })
+      .filter((e) => !cards.some((c) => c.contains(e)) && !e.closest('nav, aside, [role=navigation], [class*="sidebar" i], #mah-shopee-fab')
+        && !leavesPage(e.closest('a[href]')));
+    return hits.filter((e) => !hits.some((o) => o !== e && e.contains(o)))[0] || null; // ชิ้นในสุด
+  }
+  async function applySort(kind) { // true = หน้าเว็บเรียงแบบนี้แล้ว · false = หาปุ่มเรียงไม่เจอ
+    const re = SORT_RE[kind];
+    for (const sel of document.querySelectorAll('select')) {
+      const o = [...sel.options].find((x) => re.test(x.text.trim()));
+      if (!o) continue;
+      if (sel.value !== o.value) {
+        const before = cardSig();
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(sel, o.value);
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        await waitResults(before, 15000);
+      }
+      return true;
+    }
+    let hit = sortControl(re);
+    if (!hit) { // dropdown "เรียงตาม ▾" → เปิดก่อนแล้วหาตัวเลือก
+      const trig = [...document.querySelectorAll('button, [role=button], [role=combobox], div, span')]
+        .find((e) => { const t = textOf(e); return t.length <= 40 && /^(เรียง(?:ตาม|ลำดับ)?|sort(?:\s*by)?)(\b|\s|:|$)/i.test(t) && shownEl(e); });
+      if (trig) { trig.click(); await sleep(700); hit = sortControl(re); }
+      if (!hit && trig) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
+    }
+    if (!hit) return false;
+    if (isActive(hit)) return true;
+    const before = cardSig();
+    hit.click();
+    await waitResults(before, 15000);
+    return true;
+  }
+  // view.sort = แบบเรียงที่ขอไว้ล่าสุด (ขอแล้วหาปุ่มไม่เจอก็นับว่าขอแล้ว — ไม่ค้นซ้ำทุกครั้งที่โหลดเพิ่ม)
+  async function syncSort(sort) {
+    if (sort) { view.sort = sort; return applySort(sort); }
+    if (view.sort) { view.sort = ''; await applySort('relevance'); } // เคยเรียงขายดีไว้ → กลับไปเรียงเกี่ยวข้อง
+    return null;
+  }
+
+  // view = หน้าเว็บกำลังแสดงผลค้นคำไหน หน้าที่เท่าไร · want = ผลค้นหาที่แผงบน meta.ai ดูอยู่
+  // (affLink อาจค้นชื่อสินค้าแทรก → ตอนโหลดเพิ่มต้องพากลับไปหน้าที่แผงดูอยู่ก่อน)
+  const view = { kw: null, page: 1, sort: '' }, want = { kw: null, page: 1 };
+  async function nextStep() { // หน้าถัดไป (ปุ่มแบ่งหน้า) หรือเลื่อนลงให้โหลดเพิ่ม · คืน true = ได้ของเพิ่ม/ไปหน้าถัดไปแล้ว
+    const before = cardSig(), n = pageCards().length;
+    const next = [...document.querySelectorAll('button, li, a')].find((b) => shownEl(b) && !b.disabled && b.getAttribute('aria-disabled') !== 'true'
+      && (/^(ถัดไป|next|>|›)$/i.test((b.innerText || '').trim()) || /next/i.test(`${b.getAttribute('aria-label') || ''} ${String(b.className)}`)));
+    if (next) { next.click(); await waitResults(before, 15000); } else {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      for (let t = 0; t < 16 && pageCards().length <= n; t++) await sleep(500);
+    }
+    const moved = !!next || pageCards().length > n;
+    if (moved) view.page++;
+    return moved;
+  }
+
+  async function affSearch({ keyword, more, home, page, sort = '' }) {
+    if (!onAffiliate()) return { ok: false, login: true, error: 'ยังไม่ได้เข้าสู่ระบบ Shopee Affiliate ในเบราว์เซอร์นี้' };
+    if (home) { // สินค้าแนะนำ = การ์ดที่หน้าข้อเสนอผลิตภัณฑ์แสดงเองตอนเปิด (ยังไม่ได้ค้น)
+      if (view.kw !== null || !/product_offer/.test(location.pathname)) return { ok: false, reload: true, error: `เปิดหน้าข้อเสนอผลิตภัณฑ์ไม่ได้ (${pageInfo()})` }; // เคยค้นแล้ว/อยู่หน้าอื่น → ให้ background เปิดหน้าใหม่
+      await waitReady(25000);
+      for (let t = 0; t < 30 && !pageCards().length; t++) await sleep(500);
+      if (!pageCards().length) {
+        const bodyText = (document.body.innerText || '').slice(0, 3000);
+        if (!searchInput() && /เข้าสู่ระบบ|log\s*in|sign\s*in|ลงทะเบียน|สมัคร/i.test(bodyText)) return { ok: false, login: true, error: 'ยังไม่ได้เข้าสู่ระบบ Shopee Affiliate ในเบราว์เซอร์นี้' };
+        return { ok: false, notReady: !document.querySelector('input'), error: `หน้า Affiliate ไม่มีสินค้าแนะนำขึ้น — ลองกดหมวดหรือพิมพ์ค้นหาแทน (${pageInfo()})` };
+      }
+      await waitResults('', 6000); // รอการ์ดโหลดครบแล้วนิ่ง
+      Object.assign(view, { kw: '', page: 1 });
+      const sorted = await syncSort(sort); // 📈 ขายดี
+      Object.assign(want, view);
+      return { ok: true, items: await results(), more: true, sorted };
+    }
+    if (more) {
+      // หน้าที่แผงดูอยู่ · แท็บนี้เพิ่งโหลดใหม่ (ตัวแปรหาย) → ใช้เลขหน้าที่แผงส่งมา (page = หน้าที่ขอ)
+      const at = Math.max(want.kw === keyword ? want.page : 1, (+page || 0) - 1);
+      if (view.kw === null && keyword === '' && /product_offer/.test(location.pathname)) Object.assign(view, { kw: '', page: 1 }); // โหลดใหม่ = รายการแนะนำหน้าแรก
+      const sortOff = (view.sort || '') !== sort; // เปลี่ยนแบบเรียง → ค้นใหม่แล้วไล่หน้า
+      if (view.kw !== keyword || view.page !== at || sortOff) { // หน้าเว็บถูกเปลี่ยนไป → ค้นคำเดิม (ถ้าต้อง) แล้วไล่ไปหน้าเดิมก่อน
+        if (view.kw !== keyword || view.page > at || sortOff) {
+          const r = await gotoSearch(keyword);
+          if (!r.ok) return r;
+          await syncSort(sort);
+        }
+        while (view.page < at && (await nextStep()));
+      }
+      const moved = await nextStep();
+      Object.assign(want, view);
+      return { ok: true, items: await results(), more: moved };
+    }
+    const r = await gotoSearch(keyword);
+    if (!r.ok) return r;
+    const sorted = await syncSort(sort);
+    Object.assign(want, view);
+    return { ok: true, items: await results(), more: true, sorted };
+  }
+
+  // พิมพ์คำค้นบนหน้าข้อเสนอผลิตภัณฑ์แล้วรอผลขึ้น
+  async function gotoSearch(keyword) {
+    await waitReady(25000);
+    let input = searchInput();
+    if (!input) { // ไม่ได้อยู่หน้าข้อเสนอผลิตภัณฑ์ → กดเมนูไปก่อน
+      const nav = [...document.querySelectorAll('a, [role=menuitem], li, span')].find((a) => /product_offer/.test(a.getAttribute('href') || '') || /^(ข้อเสนอ\s*ผลิตภัณฑ์|product offers?)$/i.test((a.innerText || '').trim()));
+      if (nav) { nav.click(); for (let t = 0; t < 20 && !(input = searchInput()); t++) await sleep(500); }
+    }
+    // ไม่มีช่องพิมพ์ + หน้าชวนล็อกอิน (path เดิม ไม่ได้ไป /login) = ยังไม่ได้ล็อกอิน
+    const bodyText = (document.body.innerText || '').slice(0, 3000);
+    if (!input && !pageCards().length && /เข้าสู่ระบบ|log\s*in|sign\s*in|ลงทะเบียน|สมัคร/i.test(bodyText)) {
+      return { ok: false, login: true, error: 'ยังไม่ได้เข้าสู่ระบบ Shopee Affiliate ในเบราว์เซอร์นี้' };
+    }
+    // ไม่มีช่องพิมพ์เลย = หน้ายังไม่วาด (อาจรอให้เปิดดูแท็บ) → ให้ background สลับไปแท็บนั้น
+    if (!input) return { ok: false, notReady: !document.querySelector('input'), error: `หาช่องค้นหาบนหน้า Affiliate ไม่เจอ (${pageInfo()})` };
+    const before = cardSig();
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, keyword);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    for (const t of ['keydown', 'keypress', 'keyup']) input.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+    await sleep(2500);
+    if (cardSig() === before) { // Enter ไม่ทำงาน → กดปุ่มค้นหาข้างช่อง
+      const box = input.closest('form') || input.parentElement.parentElement || input.parentElement;
+      const btn = [...box.querySelectorAll('button, [role=button]')].find((b) => /ค้นหา|search/i.test(labelOf(b)) || b.querySelector('svg'));
+      if (btn) btn.click();
+    }
+    if (!(await waitResults(before, 15000)) && !pageCards().length) return { ok: false, error: `ค้นหาแล้วไม่มีผลขึ้น (${pageInfo()})` };
+    Object.assign(view, { kw: keyword, page: 1 });
+    return { ok: true };
+  }
+
+  // กด "เอา ลิงก์" ของสินค้าชื่อนี้ แล้วอ่านลิงก์ affiliate จากป๊อปอัป
+  const linksNow = () => [...document.querySelectorAll('input, textarea')].map((i) => i.value)
+    .concat([...document.querySelectorAll('[role=dialog], .shopee-modal, [class*="modal" i], [class*="popup" i]')].map((d) => d.innerText || ''))
+    .join('\n').match(new RegExp(LINK_RE.source, 'g')) || [];
+  function closePopup() {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
+    for (const b of document.querySelectorAll('[role=dialog] button, .shopee-modal button, [class*="modal" i] button')) {
+      if (/^(ปิด|close|×|✕)$/i.test((b.innerText || b.getAttribute('aria-label') || '').trim()) || /close/i.test(b.getAttribute('aria-label') || '')) b.click();
+    }
+  }
+  // ไปหน้าผลค้นหาที่แผงโหลดสินค้านั้นมา (คำค้น + แบบเรียง + เลขหน้าเดิม) — ค้นใหม่ก็ต่อเมื่อคำ/แบบเรียงต่าง หรือต้องย้อนหน้า
+  async function gotoView(kw, page, sort) {
+    if (kw === '') { // สินค้าแนะนำ
+      if (view.kw === null && /product_offer/.test(location.pathname)) { // หน้าเพิ่งเปิดใหม่ = รายการแนะนำหน้าแรก
+        await waitReady(25000);
+        for (let t = 0; t < 30 && !pageCards().length; t++) await sleep(500);
+        await waitResults('', 6000);
+        Object.assign(view, { kw: '', page: 1 });
+        await syncSort(sort);
+      } else if (view.kw !== '' || view.page > page || (view.sort || '') !== sort) return { ok: false, reload: true, error: 'ต้องเปิดหน้าสินค้าแนะนำใหม่' };
+    } else if (view.kw !== kw || view.page > page || (view.sort || '') !== sort) {
+      const r = await gotoSearch(kw);
+      if (!r.ok) return r;
+      await syncSort(sort);
+    }
+    while (view.page < page && (await nextStep()));
+    return { ok: true };
+  }
+  async function affLink({ name, kw, page, sort = '' }) {
+    if (!onAffiliate()) return { ok: false, login: true, error: 'ยังไม่ได้เข้าสู่ระบบ Shopee Affiliate ในเบราว์เซอร์นี้' };
+    await waitReady(10000);
+    const find = () => pageCards().find((x) => key(readCard(x.card).name) === key(name));
+    let hit = find();
+    if (!hit && typeof kw === 'string' && +page > 0) { // สินค้าจากหน้าอื่นของผลค้นหาที่แผงโหลดไว้ (โหลดหลายหน้าให้เอง) → กลับไปหน้านั้นก่อน
+      const r = await gotoView(kw, +page, sort);
+      if (r.login || r.reload) return r; // reload = background เปิดหน้าใหม่แล้วส่งคำขอนี้มาอีกครั้ง
+      hit = find();
+    }
+    if (!hit) { // ยังไม่เจอ (หน้าเว็บเปลี่ยนไปแล้ว / เพิ่มจากที่อื่น) → ค้นด้วยชื่อสินค้าตรงๆ
+      const r = await gotoSearch(name.slice(0, 100));
+      if (r.login) return r;
+      hit = find();
+    }
+    if (!hit) return { ok: false, error: 'หาสินค้านี้บนหน้า Affiliate ไม่เจอ (ค้นหาใหม่แล้วกดอีกครั้ง)' };
+    closePopup(); await sleep(300); // ป๊อปอัปของตัวก่อนค้าง → ปิดก่อน
+    const before = new Set(linksNow());
+    const dlgs = () => [...document.querySelectorAll('[role=dialog], .shopee-modal, [class*="modal" i], [class*="popup" i]')].filter(shownEl);
+    const shownBefore = new Set(dlgs());
+    hit.btn.click();
+    lastLinkCard = null; // คลิกนี้แผงรับลิงก์เอง — ตัวดักลิงก์ไม่ต้องเขียนคิวซ้ำ (เขียนพร้อมกัน = ทับของกัน)
+    const dlgLink = () => { // ลิงก์ในป๊อปอัปที่เพิ่งเปิด (กรณีลิงก์ซ้ำกับที่มีบนหน้าอยู่แล้ว)
+      for (const d of dlgs()) if (!shownBefore.has(d)) { const m = `${d.innerText || ''} ${[...d.querySelectorAll('input, textarea')].map((i) => i.value).join(' ')}`.match(LINK_RE); if (m) return m[0]; }
+      return '';
+    };
+    for (let t = 0; t < 30; t++) {
+      await sleep(400);
+      const fresh = linksNow().find((l) => !before.has(l)) || (t >= 8 && dlgLink());
+      if (fresh) { closePopup(); return { ok: true, link: fresh }; }
+    }
+    closePopup();
+    return { ok: false, error: 'Shopee ไม่ส่งลิงก์กลับมา' };
+  }
+
+  if (window.top === window) {
+    let affChain = Promise.resolve(); // ทำทีละคำสั่ง
+    try {
+      chrome.runtime.onMessage.addListener((m, _s, send) => {
+        if (!m || (m.type !== 'affSearch' && m.type !== 'affLink')) return false;
+        affChain = affChain.then(() => (m.type === 'affSearch' ? affSearch(m) : affLink(m)))
+          .then(send, (e) => send({ ok: false, error: String(e.message || e) }));
+        return true;
+      });
+      // บอก background ว่าแท็บนี้พร้อม (และล็อกอินแล้วหรือยัง)
+      chrome.runtime.sendMessage({ type: 'affHello', login: !onAffiliate() }, () => void chrome.runtime.lastError);
+    } catch (e) {}
   }
 
   let timer = null;

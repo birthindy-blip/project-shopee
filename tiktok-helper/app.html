@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TikTok Uploader</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header>
+    <h1><span class="logo">🎵</span>TikTok Uploader</h1>
+    <button id="theme" class="icon" title="สลับธีมมืด/สว่าง"></button>
+  </header>
+  <main>
+    <section class="card">
+      <h2>👤 บัญชี TikTok <span class="sub" id="accState"></span></h2>
+      <div id="accounts"></div>
+      <div class="row"><button class="btn" id="add">➕ เพิ่มบัญชี TikTok</button></div>
+      <div class="hint">เพิ่มอีกบัญชี: ล็อกอินบัญชีนั้นบน tiktok.com ในเบราว์เซอร์นี้ก่อน (หรือสลับบัญชีในหน้าต่างอนุญาต) · แอปยังเป็น Sandbox = ต้องเพิ่มทุกบัญชีใน Target users ก่อน · คลิปสลับบัญชีทีละคลิป (👉 = คลิปถัดไปไปบัญชีนี้)</div>
+      <div class="opt"><div class="label">ส่งแบบ</div><div class="chips" id="mode"></div><div class="hint" id="modeHint"></div>
+        <label class="chk"><input type="checkbox" id="aigc"> ติดป้าย “เนื้อหา AI” ตอนโพสต์ตรง (คลิปที่ทำด้วย AI ต้องติดตามกฎ TikTok)</label></div>
+      <div class="opt"><div class="label">อัปโหลดทั้งหมด — เว้นระยะระหว่างคลิป</div><div class="chips" id="gap"></div></div>
+      <details id="setup"><summary>🔑 ตั้งค่าแอป TikTok (ทำครั้งเดียว · ฟรี)</summary>
+        <div class="hint">1) developers.tiktok.com → Manage apps → สร้างแอป (หรือใช้แอปเดิม) → มี Login Kit + Content Posting API · 2) Login Kit → Redirect URI ใส่ลิงก์ด้านล่าง · 3) Sandbox → Target users → เพิ่มบัญชี TikTok ที่จะใช้ · 4) คัดลอก Client Key + Client Secret มาวาง · เก็บในเครื่องนี้เท่านั้น</div>
+        <div class="label">Redirect URI (คัดลอกไปใส่ในแอป TikTok)</div>
+        <div class="row"><code id="redirect"></code><button class="btn" id="copyRedirect">คัดลอก</button></div>
+        <input id="key" placeholder="Client Key" autocomplete="off">
+        <input id="secret" type="password" placeholder="Client Secret" autocomplete="off">
+        <div class="row"><button class="btn dark" id="saveApp">บันทึก</button></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>📤 คลิปที่จะอัปโหลด <span class="sub" id="qState"></span></h2>
+      <div id="drop" class="drop">
+        <div>ลากไฟล์คลิป + ไฟล์ .txt (แคปชัน) มาวางตรงนี้</div>
+        <div class="row center"><button class="btn" id="pick">🎬 เลือกไฟล์</button><button class="btn" id="pickDir">📁 เลือกทั้งโฟลเดอร์</button></div>
+        <input type="file" id="files" multiple accept="video/*,.mp4,.mov,.webm,.txt" hidden>
+        <input type="file" id="dir" webkitdirectory multiple hidden>
+      </div>
+      <div class="hint">เลือกโฟลเดอร์ Downloads/ShopeeVideo ได้เลย — จับคู่แคปชันจาก .txt ชื่อเดียวกัน (คลิป -A/-B ใช้แคปชันเดียวกัน) · ตัดบรรทัดลิงก์/พิกัดออก (TikTok กดลิงก์ไม่ได้) · ไม่เอารูป · คลิปที่เคยอัปแล้วมีป้าย “เคยอัป” และไม่ถูกส่งตอนอัปโหลดทั้งหมด</div>
+      <div class="row"><button class="btn dark" id="all"></button><button class="btn" id="clearDone">🧹 เอาที่เสร็จออก</button></div>
+      <div id="list"></div>
+    </section>
+
+    <section class="card">
+      <h2>📜 ประวัติการอัปโหลด <span class="sub" id="hState"></span></h2>
+      <div id="uploads"></div>
+    </section>
+  </main>
+  <div id="msg"></div>
+  <script src="tt.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

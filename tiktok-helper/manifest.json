@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "TikTok Uploader — อัปคลิปหลายบัญชี",
+  "version": "0.1.0",
+  "description": "อัปโหลดคลิปในเครื่องขึ้น TikTok หลายบัญชี ผ่าน Content Posting API ทางการ · สลับบัญชีทีละคลิป · แคปชันจากไฟล์ .txt",
+  "permissions": ["storage", "identity"],
+  "host_permissions": [
+    "https://open.tiktokapis.com/*",
+    "https://*.tiktokapis.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "TikTok Uploader" }
+}
