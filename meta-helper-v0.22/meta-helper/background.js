@@ -11,6 +11,10 @@ chrome.runtime.onMessage.addListener((m, _sender, send) => {
     fetchImage(m.url, m.max).then((dataUrl) => send({ ok: true, dataUrl }), (e) => send({ ok: false, error: String(e) }));
     return true; // ตอบกลับแบบ async
   }
+  if (m && m.type === 'fetchMedia') { // ไฟล์คลิป/รูปของ meta.ai (หน้า meta.ai โหลดข้ามเว็บไม่ได้ — ส่วนเสริมโหลดได้)
+    keepAlive(fetchMedia(m.url).then(blobDataUrl)).then((dataUrl) => send({ ok: true, dataUrl }), (e) => send({ ok: false, error: String(e.message || e) }));
+    return true;
+  }
   if (m && m.type === 'affHello') { affHello(_sender, m); return false; } // แท็บ Affiliate โหลดเสร็จ
   if (m && (m.type === 'affSearch' || m.type === 'affLink')) { // ค้นหา/เอาลิงก์ผ่านหน้าเว็บ Affiliate (ไม่ต้องใช้ API)
     keepAlive(affCall(m)).then(send, (e) => send({ ok: false, error: String(e.message || e) }));
@@ -223,6 +227,21 @@ async function graph(path, params = {}, method = 'POST', form) {
   return j;
 }
 const dataBlob = async (dataUrl) => (await fetch(dataUrl)).blob();
+// โหลดไฟล์สื่อจากเว็บเก็บไฟล์ของ Meta (fbcdn) · ลิงก์หมดอายุ/ได้หน้า error = โยน error (ไม่ส่งของเสียต่อ)
+async function fetchMedia(url) {
+  if (!/^https:\/\//.test(url || '')) throw new Error('ไม่มีลิงก์ไฟล์');
+  const res = await fetch(url, { signal: AbortSignal.timeout(180000) });
+  if (!res.ok) throw new Error(`ลิงก์ไฟล์ใช้ไม่ได้แล้ว (HTTP ${res.status})`);
+  const blob = await res.blob();
+  if (blob.size < 20000 || (blob.type && !/^(video|image)\/|octet-stream/.test(blob.type))) throw new Error('ลิงก์ไม่ได้ส่งไฟล์วิดีโอกลับมา');
+  return blob;
+}
+async function blobDataUrl(blob) {
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return `data:${blob.type || 'video/mp4'};base64,${btoa(bin)}`;
+}
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // รายชื่อเพจที่ token นี้จัดการได้ (+ Page Token ของแต่ละเพจ)
 async function fbPages({ userToken }) {
@@ -275,11 +294,21 @@ async function fbReel({ pageId, token, video, description, comment }) {
   let body;
   if (video.dataUrl) {
     body = await dataBlob(video.dataUrl);
+    if (!body.size) throw new Error('ไฟล์คลิปว่างเปล่า');
     Object.assign(headers, { offset: '0', file_size: String(body.size), 'Content-Type': 'application/octet-stream' });
-  } else headers.file_url = video.url;
+  } else { // มีแค่ลิงก์ → ส่วนเสริมโหลดไฟล์เองแล้วอัปเป็นไฟล์ (ให้ Facebook ไปโหลดลิงก์ของ Meta เอง = 422 Unable to fetch media)
+    try { body = await fetchMedia(video.url); Object.assign(headers, { offset: '0', file_size: String(body.size), 'Content-Type': 'application/octet-stream' }); }
+    catch (e) { // ลิงก์ตาย (หมดอายุ/ได้หน้า error) = บอกตรงๆ · เน็ตมีปัญหา = ลองให้ Facebook โหลดเอง (สุดท้าย)
+      if (/HTTP 4\d\d|ไม่ได้ส่งไฟล์/.test(e.message)) throw new Error(`ลิงก์คลิปของ meta.ai หมดอายุแล้ว (${e.message}) — กด 🎬 ลง Reel → 📁 เลือกไฟล์ .mp4 จากโฟลเดอร์ ShopeeVideo`);
+      headers.file_url = video.url;
+    }
+  }
   const up = await fetch(start.upload_url || `https://rupload.facebook.com/video-upload/v23.0/${id}`, { method: 'POST', headers, body, signal: AbortSignal.timeout(300000) });
-  const uj = await up.json().catch(() => ({}));
-  if (!up.ok || uj.error || uj.success === false) throw new Error(`อัปโหลดคลิปไม่ได้: ${(uj.error && (uj.error.message || JSON.stringify(uj.error))) || `HTTP ${up.status}`}`.slice(0, 260));
+  const ut = await up.text().catch(() => '');
+  let uj = {};
+  try { uj = JSON.parse(ut); } catch (e) {}
+  // บอกรายละเอียดจาก Facebook ด้วย (เดิมได้แค่ "HTTP 422") · แบบไฟล์ / แบบลิงก์
+  if (!up.ok || uj.error || uj.success === false) throw new Error(`อัปโหลดคลิปไม่ได้ (${body ? `ไฟล์ ${(body.size / 1048576).toFixed(1)} MB` : 'ให้ Facebook โหลดจากลิงก์'}): ${(uj.error && (uj.error.message || JSON.stringify(uj.error))) || `HTTP ${up.status}${ut ? ` ${ut.replace(/\s+/g, ' ').slice(0, 120)}` : ''}`}`.slice(0, 300));
   await graph(`${pageId}/video_reels`, { upload_phase: 'finish', video_id: id, video_state: 'PUBLISHED', description, access_token: token });
   return { videoId: id, ...(comment ? await fbComment(id, token, comment, 24) : {}) };
 }

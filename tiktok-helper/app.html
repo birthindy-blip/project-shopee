@@ -3,16 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TikTok Uploader</title>
+  <title>Meta AI → TikTok</title>
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
   <header>
-    <h1><span class="logo">🎵</span>TikTok Uploader</h1>
+    <h1><span class="logo">🎵</span>Meta AI → TikTok</h1>
     <button id="theme" class="icon" title="สลับธีมมืด/สว่าง"></button>
   </header>
+  <div class="intro"><p>สร้างคลิปจากไอเดียของคุณ แล้วส่งไปบัญชี TikTok ที่เลือก</p></div>
+  <nav class="workspace-nav" aria-label="หน้าทำงาน">
+    <button data-view="accounts" aria-controls="view-accounts">① บัญชีและการส่ง</button>
+    <button data-view="create" aria-controls="view-create" class="active">② สร้างคลิป <span id="navJobs">0</span></button>
+    <button data-view="uploads" aria-controls="view-uploads">③ คลิปพร้อมส่ง <span id="navUploads">0</span></button>
+    <button data-view="history" aria-controls="view-history">ประวัติ</button>
+  </nav>
   <main>
-    <section class="card">
+    <section class="card" id="view-create">
+      <div class="section-head"><div><h2>สร้างคลิปด้วยพรอมป์ต์ของคุณ</h2><p class="hint">ใส่พรอมป์ต์ เลือกบัญชี แล้วเพิ่มเข้าคิวได้หลายคลิป</p></div><button class="btn" data-view="accounts">จัดการบัญชี TikTok</button></div>
+      <div class="connection-box"><strong>เชื่อมหน้า Meta AI</strong> <span class="sub" id="metaState"></span>
+      <div class="row"><button class="btn" id="metaOpen">เปิด Meta AI</button><button class="btn" id="metaRefresh">ตรวจแท็บ</button><select id="metaTab" aria-label="แท็บ Meta AI"></select></div>
+      <div class="hint">ล็อกอินและเปิดหน้าสร้างวิดีโอไว้ · เปิดทั้งสองแท็บค้างไว้ระหว่างทำงาน</div></div>
+      <div class="create-layout"><div class="compose-box">
+      <label class="label" for="metaName">ชื่อคลิป</label>
+      <input id="metaName" placeholder="ชื่อคลิป (ใช้ตั้งชื่อไฟล์)">
+      <label class="label" for="metaPrompt">พรอมป์ต์ <span class="sub">พิมพ์เองได้ทุกแนว</span></label>
+      <textarea id="metaPrompt" rows="5" placeholder="พรอมป์ต์สำหรับสร้างวิดีโอ เช่น คลิปแนวตั้ง 9:16 ความยาว 10 วินาที ..."></textarea>
+      <label class="label" for="metaTarget">ส่งคลิปนี้ไปบัญชี</label><select id="metaTarget"></select>
+      <details class="extra-fields"><summary>แคปชันและรูปอ้างอิง (ไม่บังคับ)</summary>
+      <label class="label" for="metaCaption">แคปชัน + แฮชแท็ก</label>
+      <textarea id="metaCaption" rows="2" placeholder="แคปชัน TikTok + แฮชแท็ก (เว้นว่าง = ใช้ชื่อคลิป)"></textarea>
+      <div class="label">รูปอ้างอิง (ไม่บังคับ)</div><input id="metaImage" type="file" accept="image/jpeg,image/png,image/webp">
+      </details><div class="row"><button class="btn dark" id="metaAdd">＋ เพิ่มคลิปเข้าคิว</button></div>
+      </div><div class="queue-box">
+      <h2>คิวคลิป <span class="sub" id="metaQueueCount"></span></h2>
+      <div class="queue-toolbar"><select id="metaFilter" aria-label="กรองคิวตามบัญชี"></select><button class="btn" id="metaDistribute">แบ่งคลิปให้ทุกบัญชี</button></div>
+      <div class="hint" id="metaDistribution"></div>
+      <div id="metaJobs"></div>
+      <div class="run-box"><label class="chk"><input id="metaAuto" type="checkbox"> เจนเสร็จแล้วอัปโหลด TikTok ให้ด้วย</label>
+      <p class="hint" id="metaSendSummary"></p>
+      <div class="row"><button class="btn dark" id="metaRun">▶ เริ่มคิวเจน</button><button class="btn" id="metaStop" disabled>⏹ หยุด</button></div>
+      </div></div></div>
+    </section>
+    <section class="card" id="view-accounts" hidden>
       <h2>👤 บัญชี TikTok <span class="sub" id="accState"></span></h2>
       <div id="accounts"></div>
       <div class="row"><button class="btn" id="add">➕ เพิ่มบัญชี TikTok</button></div>
@@ -28,28 +61,33 @@
         <input id="secret" type="password" placeholder="Client Secret" autocomplete="off">
         <div class="row"><button class="btn dark" id="saveApp">บันทึก</button></div>
       </details>
+      <div class="row"><button class="btn dark" data-view="create">ไปสร้างคลิป →</button></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="view-uploads" hidden>
       <h2>📤 คลิปที่จะอัปโหลด <span class="sub" id="qState"></span></h2>
-      <div id="drop" class="drop">
+      <div class="row"><label for="uploadFilter">ดูคลิปของบัญชี</label><select id="uploadFilter"><option value="">ทุกบัญชี</option></select></div>
+      <details><summary>เพิ่มคลิปจากเครื่อง</summary><div id="drop" class="drop">
         <div>ลากไฟล์คลิป + ไฟล์ .txt (แคปชัน) มาวางตรงนี้</div>
         <div class="row center"><button class="btn" id="pick">🎬 เลือกไฟล์</button><button class="btn" id="pickDir">📁 เลือกทั้งโฟลเดอร์</button></div>
         <input type="file" id="files" multiple accept="video/*,.mp4,.mov,.webm,.txt" hidden>
         <input type="file" id="dir" webkitdirectory multiple hidden>
-      </div>
-      <div class="hint">เลือกโฟลเดอร์ Downloads/ShopeeVideo ได้เลย — จับคู่แคปชันจาก .txt ชื่อเดียวกัน (คลิป -A/-B ใช้แคปชันเดียวกัน) · ตัดบรรทัดลิงก์/พิกัดออก (TikTok กดลิงก์ไม่ได้) · ไม่เอารูป · คลิปที่เคยอัปแล้วมีป้าย “เคยอัป” และไม่ถูกส่งตอนอัปโหลดทั้งหมด</div>
+      </div></details>
+      <div class="hint">เลือกคลิปจากโฟลเดอร์ในเครื่อง — จับคู่แคปชันจาก .txt ชื่อเดียวกัน (คลิป -A/-B ใช้แคปชันเดียวกัน) · คลิปที่เคยอัปแล้วมีป้าย “เคยอัป” และไม่ถูกส่งตอนอัปโหลดทั้งหมด</div>
       <div class="row"><button class="btn dark" id="all"></button><button class="btn" id="clearDone">🧹 เอาที่เสร็จออก</button></div>
       <div id="list"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="view-history" hidden>
       <h2>📜 ประวัติการอัปโหลด <span class="sub" id="hState"></span></h2>
       <div id="uploads"></div>
     </section>
   </main>
-  <div id="msg"></div>
+  <div id="msg" role="status" aria-live="polite"></div>
   <script src="tt.js"></script>
+  <script src="routing.js"></script>
   <script src="app.js"></script>
+  <script src="meta.js"></script>
+  <script src="ui.js"></script>
 </body>
 </html>

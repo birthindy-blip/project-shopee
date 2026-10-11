@@ -338,13 +338,14 @@
     return out;
   }
   const cardSig = () => pageCards().slice(0, 4).map((x) => readCard(x.card).name).join('|');
-  async function waitResults(before, ms) { // รอผลค้นหาเปลี่ยนแล้วนิ่ง · ไม่มีการ์ดเลยนิ่ง 3 วิ = ไม่เจอ
-    const end = Date.now() + ms;
+  // same = ค้นคำเดิมที่หน้าแรกอยู่แล้ว (ผลเหมือนเดิมได้) → นิ่ง 3 วิก็นับว่าเสร็จ (เดิมรอให้ "เปลี่ยน" จนหมดเวลา 15 วิ ทุกครั้งที่กด 📈 / ค้นซ้ำ)
+  async function waitResults(before, ms, same = false) { // รอผลค้นหาเปลี่ยนแล้วนิ่ง · ไม่มีการ์ดเลยนิ่ง 3 วิ = ไม่เจอ
+    const t0 = Date.now(), end = t0 + ms;
     let prev = null, stable = 0;
     while (Date.now() < end) {
       await sleep(500);
       const s = cardSig();
-      if (s === prev && (s !== before || !s)) { if (++stable >= (s ? 2 : 6)) return true; } else stable = 0;
+      if (s === prev && (s !== before || !s || (same && Date.now() - t0 > 3000))) { if (++stable >= (s ? 2 : 6)) return true; } else stable = 0;
       prev = s;
     }
     return false;
@@ -375,14 +376,31 @@
       tags: rest.filter((l) => l.length <= 30 && !NOT_TAG.test(l)).slice(0, 6),
     };
   }
+  // อ่านการ์ดทั้งหน้า: เลื่อนทีละจอจนสุดหน้า แล้วเก็บการ์ดที่โผล่มาระหว่างทาง
+  // (บางหน้าวาดการ์ดเฉพาะส่วนที่มองเห็น / รูปโหลดตอนเลื่อนถึง — เดิมอ่านแค่ที่วาดอยู่ตอนนั้น เลยได้ทีละไม่กี่ตัว)
   async function results() {
-    const list = pageCards();
-    for (const x of list.slice(0, 40)) { // รูปแบบ lazy-load: เลื่อนให้เห็นก่อนถึงจะได้ลิงก์รูปจริง
-      if (readCard(x.card).imageUrls.length) continue;
-      x.card.scrollIntoView({ block: 'center' });
-      await sleep(150);
+    const got = new Map(); // ชื่อ → สินค้า (ตัวที่มีรูปทับตัวที่ยังไม่มี)
+    const grab = () => { for (const x of pageCards()) { const r = readResult(x); if (r.name && (!got.has(r.name) || (!got.get(r.name).image && r.image))) got.set(r.name, r); } };
+    grab();
+    const step = Math.max(300, Math.round(window.innerHeight * 0.8));
+    for (let y = 0, k = 0; k < 40; k++) {
+      y += step;
+      window.scrollTo(0, y);
+      await sleep(250);
+      grab();
+      if (y + window.innerHeight >= document.documentElement.scrollHeight - 5) break;
     }
-    return list.map(readResult).filter((x) => x.name);
+    let scrolled = 0; // ยังไม่มีรูป (เลื่อนผ่านเร็วไป) → เลื่อนให้เห็นทีละใบ
+    for (const x of pageCards()) {
+      if (scrolled >= 60) break;
+      const r = readResult(x);
+      if (!r.name || (got.get(r.name) || {}).image) continue;
+      x.card.scrollIntoView({ block: 'center' });
+      scrolled++;
+      await sleep(150);
+      grab();
+    }
+    return [...got.values()];
   }
   const pageInfo = () => {
     const all = [...document.querySelectorAll('input')], shown = all.filter(shownEl);
@@ -456,18 +474,43 @@
   // view = หน้าเว็บกำลังแสดงผลค้นคำไหน หน้าที่เท่าไร · want = ผลค้นหาที่แผงบน meta.ai ดูอยู่
   // (affLink อาจค้นชื่อสินค้าแทรก → ตอนโหลดเพิ่มต้องพากลับไปหน้าที่แผงดูอยู่ก่อน)
   const view = { kw: null, page: 1, sort: '' }, want = { kw: null, page: 1 };
-  async function nextStep() { // หน้าถัดไป (ปุ่มแบ่งหน้า) หรือเลื่อนลงให้โหลดเพิ่ม · คืน true = ได้ของเพิ่ม/ไปหน้าถัดไปแล้ว
+  // หน้าถัดไป: (1) แถบเลขหน้า → กดเลขถัดจากหน้าปัจจุบัน (2) ปุ่ม "ดูเพิ่มเติม / โหลดเพิ่ม" (3) ปุ่ม ถัดไป / › (4) เลื่อนลงล่างสุด
+  // ไม่ใช่ลูกศรของแบนเนอร์สไลด์ · ไม่ใช่ลิงก์ไปหน้าอื่น · nextWhy = ทำไมไปต่อไม่ได้ (บอกผู้ใช้)
+  let nextWhy = '';
+  async function nextStep() { // คืน true = ได้ของเพิ่ม/ไปหน้าถัดไปแล้ว
+    nextWhy = '';
     const before = cardSig(), n = pageCards().length;
-    const next = [...document.querySelectorAll('button, li, a')].find((b) => shownEl(b) && !b.disabled && b.getAttribute('aria-disabled') !== 'true'
-      && (/^(ถัดไป|next|>|›)$/i.test((b.innerText || '').trim()) || /next/i.test(`${b.getAttribute('aria-label') || ''} ${String(b.className)}`)));
-    if (next) { next.click(); await waitResults(before, 15000); } else {
+    const inSlider = (b) => !!b.closest('[class*="swiper" i], [class*="slick" i], [class*="carousel" i], [class*="slider" i], [class*="banner" i]');
+    const cards = pageCards().map((x) => x.card);
+    const usable = (b) => shownEl(b) && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && !inSlider(b) && !leavesPage(b.closest('a[href]')) && !cards.some((c) => c.contains(b));
+    const pool = [...document.querySelectorAll('button, li, a, span, div[role=button]')].filter(usable);
+    const leafs = (list) => list.filter((b) => !list.some((o) => o !== b && b.contains(o)));
+    let next = null, how = '';
+    // (1) แถบเลขหน้า 1 2 3 … (หน้าปัจจุบันมีป้าย active/aria-current)
+    const nums = leafs(pool.filter((b) => /^\d{1,3}$/.test((b.innerText || '').trim())));
+    const cur = nums.find((b) => isActive(b) || b.getAttribute('aria-current') === 'page');
+    if (cur) { const want = +cur.innerText.trim() + 1; next = nums.find((b) => +b.innerText.trim() === want && (cur.parentElement.parentElement || document.body).contains(b)) || null; if (next) how = `เลขหน้า ${want}`; }
+    // (2) ปุ่มโหลดเพิ่ม
+    if (!next) { next = leafs(pool.filter((b) => /^(ดู(?:สินค้า)?เพิ่มเติม|โหลดเพิ่ม(?:เติม)?|แสดง(?:เพิ่ม|เพิ่มเติม|มากขึ้น)|see more|load more|show more|view more)$/i.test((b.innerText || '').trim())))[0] || null; if (next) how = 'ปุ่มโหลดเพิ่ม'; }
+    // (3) ปุ่มถัดไป · ในแถบแบ่งหน้าก่อน
+    if (!next) {
+      const cands = pool.filter((b) => /^(ถัดไป|next|>|›|»)$/i.test((b.innerText || '').trim()) || /next|arrow-right|chevron-right|icon-right|--right/i.test(`${b.getAttribute('aria-label') || ''} ${String(b.className)}`));
+      next = cands.find((b) => b.closest('[class*="pag" i], [role=navigation], nav')) || cands.find((b) => /^(ถัดไป|next)$/i.test((b.innerText || '').trim())) || cands[0] || null;
+      if (next) how = 'ปุ่มถัดไป';
+    }
+    let moved = false;
+    if (next) { next.click(); moved = (await waitResults(before, 15000)) && (cardSig() !== before || pageCards().length > n); }
+    if (!moved) { // (4) เลื่อนลงล่างสุด (หน้าแบบเลื่อนแล้วโหลดต่อ)
       window.scrollTo(0, document.documentElement.scrollHeight);
       for (let t = 0; t < 16 && pageCards().length <= n; t++) await sleep(500);
+      moved = pageCards().length > n;
+      if (moved) how = 'เลื่อนลงล่างสุด';
     }
-    const moved = !!next || pageCards().length > n;
     if (moved) view.page++;
+    else nextWhy = next ? `กด${how}แล้วสินค้าไม่เปลี่ยน` : 'หาเลขหน้า / ปุ่มหน้าถัดไป / ปุ่มดูเพิ่มเติมไม่เจอ และเลื่อนลงแล้วไม่มีของเพิ่ม';
     return moved;
   }
+
 
   async function affSearch({ keyword, more, home, page, sort = '' }) {
     if (!onAffiliate()) return { ok: false, login: true, error: 'ยังไม่ได้เข้าสู่ระบบ Shopee Affiliate ในเบราว์เซอร์นี้' };
@@ -501,7 +544,7 @@
       }
       const moved = await nextStep();
       Object.assign(want, view);
-      return { ok: true, items: await results(), more: moved };
+      return { ok: true, items: await results(), more: moved, why: moved ? '' : `${nextWhy} (${pageInfo()})` };
     }
     const r = await gotoSearch(keyword);
     if (!r.ok) return r;
@@ -525,19 +568,21 @@
     }
     // ไม่มีช่องพิมพ์เลย = หน้ายังไม่วาด (อาจรอให้เปิดดูแท็บ) → ให้ background สลับไปแท็บนั้น
     if (!input) return { ok: false, notReady: !document.querySelector('input'), error: `หาช่องค้นหาบนหน้า Affiliate ไม่เจอ (${pageInfo()})` };
-    const before = cardSig();
+    const before = cardSig(), same = view.kw === keyword && view.page === 1 && !!before;
     input.focus();
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, keyword);
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
     for (const t of ['keydown', 'keypress', 'keyup']) input.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
     await sleep(2500);
-    if (cardSig() === before) { // Enter ไม่ทำงาน → กดปุ่มค้นหาข้างช่อง
+    if (cardSig() === before && !same) { // Enter ไม่ทำงาน → กดปุ่มค้นหาข้างช่อง (ไม่ใช่ปุ่ม ✕ ล้างคำค้น — เดิมกดปุ่มไอคอนตัวแรก อาจล้างคำค้นทิ้ง)
       const box = input.closest('form') || input.parentElement.parentElement || input.parentElement;
-      const btn = [...box.querySelectorAll('button, [role=button]')].find((b) => /ค้นหา|search/i.test(labelOf(b)) || b.querySelector('svg'));
-      if (btn) btn.click();
+      const desc = (b) => `${labelOf(b)} ${b.getAttribute('title') || ''} ${String(b.className)}`;
+      const btns = [...box.querySelectorAll('button, [role=button]')].filter((b) => shownEl(b) && !/clear|close|reset|ล้าง|ลบ|ยกเลิก|×|✕/i.test(desc(b)));
+      const btn = btns.find((b) => /ค้นหา|search/i.test(desc(b))) || btns.find((b) => b.querySelector('svg'));
+      if (btn && input.value === keyword) btn.click();
     }
-    if (!(await waitResults(before, 15000)) && !pageCards().length) return { ok: false, error: `ค้นหาแล้วไม่มีผลขึ้น (${pageInfo()})` };
+    if (!(await waitResults(before, 15000, same)) && !pageCards().length) return { ok: false, error: `ค้นหาแล้วไม่มีผลขึ้น (${pageInfo()})` };
     Object.assign(view, { kw: keyword, page: 1 });
     return { ok: true };
   }

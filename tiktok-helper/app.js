@@ -2,7 +2,8 @@
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const store = chrome.storage.local;
-const msg = (text, cls) => { $('msg').textContent = text; $('msg').className = cls || ''; };
+let msgTimer;
+const msg = (text, cls) => { clearTimeout(msgTimer); $('msg').textContent = text; $('msg').className = cls || ''; if (cls === 'ok') msgTimer = setTimeout(() => { $('msg').textContent = ''; }, 6000); };
 const MODES = [['inbox', '📥 กล่องร่าง (กดโพสต์เองในแอป)'], ['direct', '🚀 โพสต์ตรง']];
 const GAPS = [['0', 'ไม่เว้น'], ['1', '1 นาที'], ['5', '5 นาที'], ['15', '15 นาที']];
 let st = { mode: 'inbox', gap: '1', aigc: true, next: 0, theme: 'dark' };
@@ -60,6 +61,7 @@ const nextAccount = () => { const u = usable(); return u.length ? u[(st.next || 
 const accName = (a) => (a && a.name) || 'บัญชี TikTok';
 function pick(it) { // บัญชีของคลิปนี้: ตัวที่เลือกไว้ถ้ายังใช้ได้ · ไม่งั้นบัญชีถัดไปในรอบสลับ
   let a = usable().find((x) => x.openId === it.openId);
+  if (!a && it.accountLocked && it.openId) return null;
   if (!a && (a = nextAccount())) { st.next = (st.next || 0) + 1; saveSt(); it.openId = a.openId; }
   return a || null;
 }
@@ -68,10 +70,10 @@ function pick(it) { // บัญชีของคลิปนี้: ตัว�
 async function uploadOne(it, retry = true) {
   if (it.state === 'busy') return false;
   const a = pick(it);
-  if (!a) { it.state = 'err'; it.note = accountsOn().length ? 'ทุกบัญชีติดเพดานในรอบนี้ — ลองใหม่ทีหลัง' : 'ยังไม่ได้เพิ่ม/เปิดใช้บัญชี TikTok'; render(); return false; }
+  if (!a) { it.state = 'err'; it.note = it.accountLocked && it.openId ? 'บัญชีที่เลือกไม่พร้อมใช้งาน — เปิดใช้บัญชีหรือเลือกปลายทางใหม่' : accountsOn().length ? 'ทุกบัญชีติดเพดานในรอบนี้ — ลองใหม่ทีหลัง' : 'ยังไม่ได้เพิ่ม/เปิดใช้บัญชี TikTok'; render(); return false; }
   it.state = 'busy'; it.note = `→ ${accName(a)} · เริ่ม...`; render();
   try {
-    const r = await ttUpload({ file: it.file, title: it.caption, mode: st.mode, openId: a.openId, aigc: st.aigc, onStep: (t) => { it.note = `→ ${accName(a)} · ${t}`; render(); } });
+    const r = await ttUpload({ file: it.file, title: it.caption, mode: st.mode, openId: a.openId, aigc: it.generated || st.aigc, onStep: (t) => { it.note = `→ ${accName(a)} · ${t}`; render(); } });
     const where = /PROCESSING/.test(r.status || '') ? 'ส่งแล้ว TikTok ยังประมวลผลอยู่ (เช็กในแอปอีกสักครู่)'
       : st.mode !== 'direct' || r.status === 'SEND_TO_USER_INBOX' ? 'เข้ากล่องร่างแล้ว — เปิดแอป TikTok วางแคปชันแล้วกดโพสต์'
       : r.privacy === 'SELF_ONLY' ? 'โพสต์แล้วแบบส่วนตัว (แอปยังไม่ผ่านตรวจ TikTok)' : 'โพสต์แล้ว';
@@ -83,6 +85,7 @@ async function uploadOne(it, retry = true) {
     const err = String(e.message || e), why = ttLimitWhy(err);
     if (why && !paused.has(a.openId)) { // ติดเพดาน → พักบัญชีนี้ คลิปนี้ไปบัญชีอื่น (ลองทันที 1 ครั้ง)
       paused.add(a.openId); it.openId = '';
+      if (it.accountLocked) { it.openId = a.openId; it.state = 'err'; it.note = `${accName(a)}: ${why} — เก็บคลิปไว้บัญชีเดิม`; return false; }
       if (retry && usable().length) { it.state = 'wait'; it.note = `⏸ “${accName(a)}” ${why} — ลองบัญชีถัดไป`; render(); return uploadOne(it, false); }
     }
     it.state = 'err'; it.note = `${accName(a)}: ${why || err}`;
@@ -139,7 +142,8 @@ function renderAccounts() {
   $('accState').textContent = accs.length ? `เชื่อม ${accs.length} บัญชี · ใช้ ${accountsOn().length}${next ? ` · คลิปถัดไปไป “${accName(next)}”` : ''}` : acc.hasApp ? 'ยังไม่มีบัญชี — กด ➕ เพิ่มบัญชี' : 'ยังไม่ได้ตั้งค่าแอป — ดู 🔑 ด้านล่าง';
   $('accounts').replaceChildren(...(accs.length ? accs.map((a) => {
     const row = el('div', 'acc');
-    const b = el('button', `name${a.on ? ' on' : ''}`, `${a.on && next && a.openId === next.openId ? '👉 ' : ''}${accName(a)}`);
+    const b = el('button', `name${a.on ? ' on' : ''}`, `${a.on && next && a.openId === next.openId ? '👉 ' : ''}${accName(a)} · ${a.on ? 'เปิดใช้' : 'ปิดใช้'}`);
+    b.setAttribute('aria-pressed', String(a.on));
     b.title = a.on ? 'กดเพื่อไม่ใช้บัญชีนี้' : 'กดเพื่อใช้บัญชีนี้';
     b.onclick = async () => { acc = await ttAccount({ openId: a.openId, on: !a.on }); render(); };
     const note = a.expired ? 'token หมดอายุ — กด ➕ เพิ่มบัญชี แล้วล็อกอินบัญชีนี้ใหม่' : paused.has(a.openId) ? 'พักในรอบนี้ (ติดเพดาน)'
@@ -155,6 +159,12 @@ function renderAccounts() {
   $('key').placeholder = acc.hasApp ? 'Client Key (บันทึกไว้แล้ว — ว่างไว้ = ใช้ค่าเดิม)' : 'Client Key';
   $('secret').placeholder = acc.hasApp ? 'Client Secret (บันทึกไว้แล้ว — ว่างไว้ = ใช้ค่าเดิม)' : 'Client Secret';
   if (!acc.hasApp) $('setup').open = true;
+  const filter = $('uploadFilter'), selected = filter.value;
+  const options = [['', 'ทุกบัญชี'], ...accs.map(a => [a.openId, accName(a)])];
+  if (filter.dataset.sig !== JSON.stringify(options)) {
+    filter.replaceChildren(...options.map(([v,t])=>{ const o=el('option','',t); o.value=v; return o; })); filter.value=selected; filter.dataset.sig=JSON.stringify(options);
+  }
+  document.dispatchEvent(new Event('tthAccountsChanged'));
 }
 // แถวคลิป: สร้างครั้งเดียวแล้วอัปเดตเฉพาะส่วน (พิมพ์แก้แคปชันระหว่างอัปโหลดตัวอื่นได้ ไม่หลุด)
 function rowFor(it) {
@@ -172,7 +182,7 @@ function rowFor(it) {
   acts.append(up, cp, rm);
   const sel = el('select');
   sel.title = 'บัญชีที่คลิปนี้จะไป';
-  sel.onchange = () => { it.openId = sel.value; render(); };
+  sel.onchange = () => { it.openId = sel.value; it.accountLocked = !!sel.value; document.dispatchEvent(new CustomEvent('tthItemAssigned', {detail:{id:it.id,openId:it.openId}})); render(); };
   const ta = el('textarea');
   ta.rows = 3; ta.placeholder = 'แคปชัน + แฮชแท็ก (โพสต์ตรงใช้แคปชันนี้ · กล่องร่างกด 📋 แล้ววางในแอป)'; ta.value = it.caption;
   ta.oninput = () => { it.caption = ta.value; };
@@ -183,17 +193,18 @@ function rowFor(it) {
 }
 function renderItems() {
   const box = $('list');
-  const rows = items.map((it) => {
+  const rows = items.filter(it=>!$('uploadFilter').value || it.openId===$('uploadFilter').value).map((it) => {
     const d = rowFor(it), before = doneBefore(it);
     d.row.className = `item ${it.state}`;
-    d.meta.replaceChildren(el('span', '', mb(it.file.size)), el('span', '', it.fromTxt ? '📝 แคปชันจาก .txt' : '📝 แคปชัน = ชื่อไฟล์'),
+    d.meta.replaceChildren(el('span', '', mb(it.file.size)), el('span', '', it.generated ? '🎬 Meta AI · แคปชันที่คุณใส่' : it.fromTxt ? '📝 แคปชันจาก .txt' : '📝 แคปชัน = ชื่อไฟล์'),
       ...(before.length ? [el('span', 'done', `✓ เคยอัป ${before.length} ครั้ง (ล่าสุด “${before[before.length - 1].account || 'บัญชี'}” ${when(before[before.length - 1].at)})`)] : []));
     d.up.textContent = it.state === 'busy' ? 'กำลังอัป...' : it.state === 'ok' || before.length ? '⬆ อัปอีกครั้ง' : '⬆ อัปโหลด';
     d.up.className = it.state === 'ok' || before.length ? 'btn' : 'btn dark';
     d.up.disabled = it.state === 'busy' || !accountsOn().length;
-    const opts = [['', '— บัญชีถัดไปในรอบสลับ —'], ...accountsOn().map((a) => [a.openId, `→ ${accName(a)}${paused.has(a.openId) ? ' (พัก)' : ''}`])];
+    const opts = [['', '— แบ่งไปบัญชีถัดไป —'], ...accountsOn().map((a) => [a.openId, `→ ${accName(a)}${paused.has(a.openId) ? ' (พัก)' : ''}`])];
+    if (it.openId && !accountsOn().some(a=>a.openId===it.openId)) opts.push([it.openId, 'บัญชีที่เลือกไม่พร้อมใช้งาน']);
     if (d.sel.dataset.sig !== JSON.stringify(opts)) { d.sel.replaceChildren(...opts.map(([v, t]) => { const o = el('option', '', t); o.value = v; return o; })); d.sel.dataset.sig = JSON.stringify(opts); }
-    d.sel.value = accountsOn().some((a) => a.openId === it.openId) ? it.openId : '';
+    d.sel.value = it.openId || '';
     d.sel.disabled = it.state === 'busy';
     d.note.textContent = it.note;
     return d.row;
@@ -201,6 +212,7 @@ function renderItems() {
   if (rows.length !== box.children.length || rows.some((r, i) => box.children[i] !== r)) box.replaceChildren(...(rows.length ? rows : [el('div', 'empty', 'ยังไม่มีคลิป — ลากไฟล์มาวาง หรือกดเลือกไฟล์/โฟลเดอร์')]));
   const wait = items.filter((x) => x.state !== 'ok' && x.state !== 'busy' && !doneBefore(x).length).length;
   $('qState').textContent = items.length ? `${items.length} คลิป · รออัป ${wait} · เสร็จ ${items.filter((x) => x.state === 'ok').length}` : '';
+  $('navUploads').textContent=wait;
   const mins = bulk.nextAt ? Math.max(1, Math.ceil((bulk.nextAt - Date.now()) / 60000)) : 0;
   $('all').textContent = bulk.on ? (bulk.stop ? 'กำลังหยุด...' : `⏹ หยุด · อัปแล้ว ${bulk.done}/${bulk.total}${mins ? ` · คลิปถัดไปอีก ${mins} นาที` : ''}`) : `▶ อัปโหลดทั้งหมด (${wait} คลิป)`;
   $('all').className = bulk.on ? 'btn danger' : 'btn dark';
@@ -239,7 +251,7 @@ drop.ondragleave = () => drop.classList.remove('over');
 drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); };
 window.addEventListener('beforeunload', (e) => { if (items.some((x) => x.state === 'busy') || bulk.on) { e.preventDefault(); e.returnValue = ''; } }); // กำลังอัป → เตือนก่อนปิดแท็บ
 
-(async () => {
+const appReady = (async () => {
   const o = await store.get(['tthSettings', 'tthHistory']);
   st = { ...st, ...(o.tthSettings || {}) };
   uploads = Array.isArray(o.tthHistory) ? o.tthHistory : [];

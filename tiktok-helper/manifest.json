@@ -1,10 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "TikTok Uploader — อัปคลิปหลายบัญชี",
-  "version": "0.1.0",
-  "description": "อัปโหลดคลิปในเครื่องขึ้น TikTok หลายบัญชี ผ่าน Content Posting API ทางการ · สลับบัญชีทีละคลิป · แคปชันจากไฟล์ .txt",
-  "permissions": ["storage", "identity"],
+  "name": "Meta AI → TikTok — เจนและอัปคลิป",
+  "version": "0.2.0",
+  "description": "พิมพ์พรอมป์ต์เอง → เจนคลิปบน Meta AI → รับคลิปเข้าคิว TikTok หลายบัญชี · รองรับคลิปในเครื่องและแคปชัน .txt",
+  "permissions": ["storage", "identity", "unlimitedStorage"],
+  "content_scripts": [{ "matches": ["https://www.meta.ai/*", "https://meta.ai/*"], "js": ["meta-content.js"], "run_at": "document_idle" }],
   "host_permissions": [
+    "https://www.meta.ai/*",
+    "https://meta.ai/*",
+    "https://*.fbcdn.net/*",
     "https://open.tiktokapis.com/*",
     "https://*.tiktokapis.com/*"
   ],

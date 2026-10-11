@@ -37,6 +37,9 @@
     "https://generativelanguage.googleapis.com/*",
     "https://graph.facebook.com/*",
     "https://rupload.facebook.com/*",
+    "https://*.fbcdn.net/*",
+    "https://*.fbsbx.com/*",
+    "https://*.meta.ai/*",
     "http://127.0.0.1:8765/*"
   ],
   "background": {

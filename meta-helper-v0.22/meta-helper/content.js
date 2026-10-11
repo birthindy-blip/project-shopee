@@ -132,6 +132,7 @@
   const OPTIONS = {
     duration: [['10', '10 วิ'], ['15', '15 วิ'], ['20', '20 วิ']],
     pace: [['fast', 'เร็ว (ตัดภาพไว)'], ['normal', 'ปกติ']],
+    talk: [['fast', 'เร็ว'], ['normal', 'ปกติ'], ['slow', 'ช้า']], // ความเร็วพูด (แยกจากจังหวะตัดภาพ)
     scenes: [['auto', 'อัตโนมัติ'], ['3', '3 ซีน'], ['4', '4 ซีน'], ['5', '5 ซีน'], ['6', '6 ซีน'], ['8', '8 ซีน']],
     fbPost: [['both', 'รูป 4 ภาพ + Reel'], ['photos', 'รูป 4 ภาพ'], ['reel', 'Reel (คลิป)']],
     music: [['auto', 'ตามจังหวะ'], ['kawaii', 'ป๊อปน่ารัก (อูคูเลเล่)'], ['none', 'ไม่มีเพลง']],
@@ -177,7 +178,7 @@
       'bright bedroom, white bed, soft daylight, room visible (no background blur)'],
   ];
   const MULTI = new Set(['vfx']); // ตัวเลือกที่เลือกได้หลายอัน
-  const DEFAULTS = { duration: '10', style: 'auto', presenter: 'auto', view: 'auto', tone: 'auto', pace: 'fast', music: 'auto', outro: true, photos: false, scenes: 'auto', spSort: '2', spXtra: true, qFilter: 'all', theme: 'dark', fbPost: 'both', fbComment: true, fbDelPhotos: true, gap: '15', variants: '1', cleanOn: true, cleanEvery: '5', newChat: '1', delOldChat: true, fillEvery: '2', aiLabel: false, fbGap: '15', post: 'on', vfx: ['auto'], scriptMode: 'meta', text: 'none', fx: 'auto', osText: '', scene: '', lines: {}, presenterId: '' };
+  const DEFAULTS = { duration: '10', style: 'auto', presenter: 'auto', view: 'auto', tone: 'auto', pace: 'fast', talk: 'fast', music: 'auto', outro: true, photos: false, scenes: 'auto', spSort: '2', spXtra: true, qFilter: 'all', theme: 'dark', fbPost: 'both', fbComment: true, fbDelPhotos: true, gap: '15', variants: '1', cleanOn: true, cleanEvery: '5', newChat: '1', delOldChat: true, fillEvery: '2', aiLabel: false, fbGap: '15', post: 'on', vfx: ['auto'], scriptMode: 'meta', text: 'none', fx: 'auto', osText: '', scene: '', lines: {}, presenterId: '' };
   let st = { ...DEFAULTS };
   let products = [];
   let presenters = []; // [{ id, name, desc, image }]
@@ -270,8 +271,10 @@
     if (info.length > 100) info = info.slice(0, 100).replace(/\s+\S*$/, ''); // ท่อนเดียวยาว → ตัดที่ช่องว่าง
     // ไม่มีบท = meta.ai คิดบทเองทั้งหมด (ไม่กำหนดจำนวนบรรทัด/ตัวอักษร/ประโยคเปิด) — บอกแค่ให้สั้นพอจบในคลิป · ไม่ใช่แคปชัน (เคยเอาแคปชันมาพูด)
     const onCam = m === 'person' || (m === 'auto' && faceUsable()); // มีคนพูดกับกล้อง (ไม่ใช่เสียงพากย์)
+    const talk = st.tone === 'asmr' ? 'slow' : st.talk || 'fast'; // ความเร็วพูด · กระซิบ ASMR = ช้าเสมอ
+    const talkN = { fast: ['three', 'four to five'], normal: ['two to three', 'three to four'], slow: ['two', 'three'] }[talk] || ['three', 'four to five']; // จำนวนประโยค [ช่วงพูด ≤10 วิ, ยาวกว่า] — พูดช้า = น้อยลงให้จบทันคลิป
     const speech = said.length ? `Says in Thai, in order: ${said.map((x) => `"${x}"`).join(' / ')}`
-      : `Speech: ${onCam ? 'the presenter speaks casual Thai, partly to camera and partly over the product shots' : 'casual Thai voice-over'}${st.tone === 'hype' ? ', hyping it like a favorite find so the viewer wants one too (real excitement, no exaggeration)' : ''} — you write it yourself from the product info, creative with a fresh angle for this product (not a generic review line), in simple everyday Thai words that are easy to say clearly, grammatically correct, avoid ending sentences with นะ or เลยนะ, never say sizes, weights or amounts (e.g. 395 กรัม, 500 ml), ${sec <= 10 ? 'three short sentences' : `${sec - (outroOn() ? 5 : 0) <= 10 ? 'three' : 'four to five'} short sentences, finishing ${outroOn() ? 'before the last 5 seconds' : 'within the clip'}`}${opts.post ? ' (not the caption)' : ''}`; // ผู้ใช้ขอบทเยอะขึ้นนิด: 10 วิ = 3 ประโยคสั้น (เดิม 2) · 15/20 วิ นับเฉพาะช่วงที่พูด (5 วิสุดท้ายสินค้าล้วน = ไม่พูด)
+      : `Speech: ${onCam ? 'the presenter speaks casual Thai, partly to camera and partly over the product shots' : 'casual Thai voice-over'}${st.tone === 'hype' ? ', hyping it like a favorite find so the viewer wants one too (real excitement, no exaggeration)' : ''} — you write it yourself from the product info, creative with a fresh angle for this product (not a generic review line), in simple everyday Thai words that are easy to say clearly, grammatically correct, avoid ending sentences with นะ or เลยนะ, never say sizes, weights or amounts (e.g. 395 กรัม, 500 ml), ${sec <= 10 ? `${talkN[0]} short sentences` : `${sec - (outroOn() ? 5 : 0) <= 10 ? talkN[0] : talkN[1]} short sentences, finishing ${outroOn() ? 'before the last 5 seconds' : 'within the clip'}`}${opts.post ? ' (not the caption)' : ''}`; // ผู้ใช้ขอบทเยอะขึ้นนิด: 10 วิ = 3 ประโยคสั้น (เดิม 2) · 15/20 วิ นับเฉพาะช่วงที่พูด (5 วิสุดท้ายสินค้าล้วน = ไม่พูด)
     const story = [
       `First frame: ${st.style === 'ugc' && onCam ? 'the presenter showing the product close to camera' : 'product close-up'}${st.text !== 'none' ? ' + Thai text already on screen' : ''}`, // เฟรมแรก = ปกคลิป (UGC = โชว์สินค้าใกล้กล้อง)
       m === 'person' || m === 'auto' ? 'Product first: the product is in frame and clearly visible most of the time (close-ups, in use) — the person supports it; whenever the face shows it is clear, sharp and natural (not tiny, blurred or distorted)' : '', // เน้นสินค้ามากกว่าคน
@@ -286,10 +289,13 @@
       : m === 'hands' ? `- Hands lock: the same hands (skin tone, nails, sleeves) for all ${sec} seconds, before and after the 10-second join.`
       : m === 'animal' ? `- Animal lock: the same animal (breed, colors, markings) for all ${sec} seconds, before and after the 10-second join.`
       : `- Person lock: ${m === 'auto' && !faceUsable() ? 'whoever appears stays exactly the same one' : 'one and the same person'} for all ${sec} seconds — same face, hair, skin tone, body, outfit and voice before and after the 10-second join; never switch to a different person.`;
-    const fastTalk = st.tone !== 'asmr'; // พูดไวทุกแนว (ผู้ใช้ขอ) — ไม่ผูกกับ “จังหวะ” ซึ่งคือความไวของการตัดภาพ (UGC/ดูเดิลตั้งปกติ) · กระซิบ ASMR ไม่เร่ง
+    // ล็อกเสียง + จังหวะพูด (ผู้ใช้ขอ): เสียงเดิม ความเร็วเดิม ตั้งแต่คำแรกถึงคำสุดท้าย (คลิปยาว = ข้ามรอยต่อ 10 วิด้วย)
+    const voiceLock = `- Voice lock: one and the same voice for the whole clip — same voice, accent and tone, at ${{ fast: 'the same fast pace', normal: 'the same relaxed pace', slow: 'the same slow, calm pace' }[talk] || 'the same pace'} from the first word to the last${sec > 10 ? ', also after the 10-second join' : ''}; never switch voices, speed up or slow down.`;
+    // ความเร็วพูดตามที่ตั้ง (ค่าเริ่มต้นเร็ว — ผู้ใช้ขอ) — ไม่ผูกกับ “จังหวะ” ซึ่งคือความไวของการตัดภาพ
+    const talkLine = { fast: 'talking very fast and energetic — rapid-fire short sentences back to back with no pauses, yet every word still clear; ', normal: 'talking at a natural, relaxed everyday pace; ', slow: 'talking slowly and calmly with short natural pauses between sentences, every word clear; ' }[talk] || '';
     const who = R.who[m === 'auto' && faceUsable() ? 'person' : m] + (st.view === 'full' && m === 'person' ? ', full body' : '');
     // พูดไทยไวยากรณ์ถูก ประโยคครบ ออกเสียงชัด เน้นคำสำคัญให้ฟังง่าย (กันพูดแปลก/ตัดคำ)
-    const voice = [`Speaking Thai like a native Central Thai speaker — clear and fully pronounced (correct tones, final consonants and vowel lengths), never mumbled, slurred or with a foreign accent; correct, natural grammar; ${fastTalk ? 'talking very fast and energetic — rapid-fire short sentences back to back with no pauses, yet every word still clear; ' : ''}stressing the key words so it is easy to follow (${R.tone[st.tone] || R.tone.casual})`, faceUsable() ? 'voice matches the face photo gender and age' : '',
+    const voice = [`Speaking Thai like a native Central Thai speaker — clear and fully pronounced (correct tones, final consonants and vowel lengths), never mumbled, slurred or with a foreign accent; correct, natural grammar; ${st.tone === 'asmr' ? '' : talkLine}stressing the key words so it is easy to follow (${R.tone[st.tone] || R.tone.casual})`, faceUsable() ? 'voice matches the face photo gender and age' : '',
       'no giggle no laugh no chuckle, clean voice'].filter(Boolean).join(', '); // พูดเร็ว: ผู้ใช้ขอ (เคยถอด brisk pace เพราะ meta ยัดคำจนบทยาว — ตอนนี้ขอบทเยอะขึ้นด้วย) · ย้ำว่าทุกคำยังชัด
     const custom = (st.osText || '').trim();
     const text = st.text === 'none' ? 'No on-screen text'
@@ -319,7 +325,7 @@
       section('REFERENCE IMAGES', refLines(false)),
       section('PRESENTER', [who, voice]),
       section('SCENE', [`${sceneText() || R.autoScene}, ${R.bright}`]),
-      section('STORY', [...story, `Editing: ${edit}`, music, `End on ${outroOn() ? 'the product-only shot' : 'the last spoken line'}, no pointing`]),
+      section('STORY', [...story, `Editing: ${edit}`, music, `End on ${outroOn() ? 'the product-only shot' : 'the last spoken line, said close to the very end (no empty seconds after it)'}, no pointing — no laugh, giggle, chuckle or any other sound after the last word, just a calm smile`]),
       section('ON-SCREEN TEXT', [text]),
       opts.photos ? section('PHOTOS', ((s) => [s.size, s.text, s.look, s.shots, s.same])(photoSpec())) : '',
       // คอนเทนต์โพสต์ (เซฟเป็น .txt + ปุ่มคัดลอกไปโพสต์) — ห้ามเขียนคำว่า Facebook (โดนแปลงเป็นวิดเจ็ต)
@@ -330,7 +336,7 @@
       ]) : '',
       // ไม่มีบทให้พูดตาม (meta.ai คิดเอง) → ตัด "say the given lines exactly" ออก
       section('RULES — MUST FOLLOW', [...R.rules.map((r) => `- ${said.length ? r : r.replace('; say the given lines exactly', '')}`)
-          .flatMap((r, i) => (i === 0 ? [r, ...(faceUsable() ? ['- Face lock: the person\'s face is identical to image 1 in every shot — natural and undistorted, normal proportions, never morphing.'] : []), ...(personLock ? [personLock] : []), ...(R.redo[(active()[0] || {}).redoWhy] ? [`- ${R.redo[active()[0].redoWhy]}`] : [])] : [r])),
+          .flatMap((r, i) => (i === 0 ? [r, ...(faceUsable() ? ['- Face lock: the person\'s face is identical to image 1 in every shot — natural and undistorted, normal proportions, never morphing.'] : []), ...(personLock ? [personLock] : []), voiceLock, ...(R.redo[(active()[0] || {}).redoWhy] ? [`- ${R.redo[active()[0].redoWhy]}`] : [])] : [r])),
         sec > 10 ? `- One video only: all ${sec} seconds in a single clip — no Part 1 / Part 2, no separate videos; seamless at 10s — continue from the 9.9s frame snapshot, no frame jump, reset, person or product change` : ''].filter(Boolean)), // บรรทัดสุดท้ายของ prompt (ตัวจับคำปฏิเสธใช้เป็นจุดจบ)
     ].filter(Boolean).join('\n\n');
   }
@@ -358,7 +364,8 @@
       // สไตล์เดียวกับคลิป (ภาพจริง/ดูเดิล + สไตล์ที่เลือก)
       size: `Square 1080x1080, 4 separate photos (images, not video), real photo${doodle ? ' + kawaii doodle overlay style' : ''}${R.style[styleKey()] ? `, ${R.style[styleKey()]}` : ''}`,
       // ตัวหนังสือไทยแบบเดียวกับในคลิป · หัวข้อสั้นกระชับ เข้ากับแต่ละภาพ (ไม่กำหนดจำนวนคำ)
-      text: `Short punchy Thai headline on each photo: ${R.photoText[st.fx] || R.photoText[doodle ? 'doodle' : 'other']}, never covering the product`,
+      // ผู้ใช้ขอตัวหนังสือบอกฟีเจอร์เยอะขึ้น (เดิมแค่หัวข้อสั้น 1 บรรทัด) — เอาจากข้อมูลสินค้าเท่านั้น ไม่มีราคา/โปร
+      text: `Thai text on each photo: a short punchy headline + 2–4 short feature callouts (small arrows, lines or icons pointing at the part they describe) — what it does, material, how to use, what stands out — only from the product info, no prices or promotions; ${R.photoText[st.fx] || R.photoText[doodle ? 'doodle' : 'other']}, never covering the product`,
       theme: st.style === 'minimal' || st.style === 'ugc' ? '' : R.theme,
       // ตั้งฉากไว้ (เช่นแนวสินค้าในห้อง) = รูปฉากเดียวกับคลิป · ไม่ตั้ง = meta.ai เลือกโลเคชั่นเอง (แต่ละภาพต่างกันได้)
       look: `Real photo, ${scene ? `same setting as the video: ${scene}` : 'location of your choice that fits the product (can differ per photo)'}, ${R.bright}${person && st.view === 'full' ? ', full body posing' : ''}`,
@@ -411,7 +418,10 @@
     }
     return false;
   }
+  // ช่องพิมพ์มีรูป/ข้อความของเราที่ยังไม่ได้ส่ง (พลาดก่อนส่ง → ต้องล้างก่อนสินค้าตัวถัดไป ไม่งั้นรูปสินค้า 2 ตัวไปปนกันในข้อความเดียว) · sends = จำนวนข้อความที่ส่งได้จริง
+  let composerDirty = false, sends = 0;
   async function insertInto(box, text) {
+    composerDirty = true;
     box.focus();
     if (box.tagName === 'TEXTAREA' || box.tagName === 'INPUT') {
       const proto = box.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -452,6 +462,7 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   async function attachFiles(files) {
     if (!files.length) return { ok: true };
+    composerDirty = true;
     let input = findFileInput();
     if (input) {
       if (input.multiple) {
@@ -691,7 +702,7 @@
 
   // เขียนบท → ตรวจคำต้องห้าม → ถ้าผิดให้เขียนใหม่ (สูงสุด 3 รอบ)
   async function writeScript(p) {
-    if (!gemini.key) throw new Error('ยังไม่ได้ใส่ Gemini API key (แท็บตั้งค่าคลิป)');
+    if (!gemini.key) throw new Error('ยังไม่ได้ใส่ Gemini API key (แท็บ 📘 → 🧩 โพสต์คั่น)');
     const images = p.images.slice(0, 2).map((i) => i.dataUrl);
     let bad = null, script = '';
     const want = spokenSegs().length;
@@ -728,10 +739,9 @@
 
   // เขียนบทให้ทุกตัวที่ยังไม่มีบท ทีละตัว (เว้นระยะกัน rate limit) · กดซ้ำ = หยุด
   const writer = { on: false, stop: false, done: 0, total: 0 };
-  const gWrite = { on: false, post: '', meta: false }; // แท็บ 👥: กำลังเขียนข้อความขายโพสต์ไหน · meta = พิมพ์ในแชต meta.ai ตอนไม่ได้รันคิว (กัน ▶ ชน)
   async function writeAll() {
     if (writer.on) { writer.stop = true; renderQbar(); return; }
-    if (!gemini.key) { msg('ใส่ Gemini API key ก่อน (แท็บตั้งค่าคลิป → บทพูด)', 'err'); return; }
+    if (!gemini.key) { msg('ใส่ Gemini API key ก่อน (แท็บ 📘 → 🧩 โพสต์คั่น)', 'err'); return; }
     const list = todo().filter(needsScript);
     if (!list.length) { msg('ทุกตัวมีบทที่ตรงกับคลิปแล้ว', 'ok'); return; }
     Object.assign(writer, { on: true, stop: false, done: 0, total: list.length });
@@ -773,7 +783,7 @@
   // ปุ่มส่ง: ชื่อชัด (Send/ส่ง) มาก่อน · Create/Generate/สร้าง ใช้เมื่อไม่มีปุ่ม Send เลย
   const SEND_RE = /send|submit|generate|create|animate|ส่ง|สร้าง/i;
   const SEND_STRONG = /(^|\s)(send|submit|ส่ง)(\s|$)|send message|ส่งข้อความ/i;
-  const NOT_SEND_RE = /stop|cancel|ยกเลิก|หยุด|attach|แนบ|upload|อัปโหลด|voice|mic|เสียง|menu|เมนู|more|share|แชร์|download|ดาวน์โหลด|\badd\b|เพิ่ม|photo|image|รูป|ภาพ|media|file|ไฟล์|camera|กล้อง|gallery|emoji|setting|ตั้งค่า|\bmode\b|โหมด|model|aspect|ratio|style|สไตล์|tool|เครื่องมือ|search|ค้นหา|copy|คัดลอก|edit|แก้ไข|new chat|แชทใหม่|dismiss|close|ปิด|error|retry/i; // dismiss = ปุ่ม X ของแถบ error
+  const NOT_SEND_RE = /stop|cancel|ยกเลิก|หยุด|attach|แนบ|upload|อัปโหลด|voice|mic|เสียง|menu|เมนู|more|share|แชร์|download|ดาวน์โหลด|\badd\b|เพิ่ม|photo|image|รูป|ภาพ|media|file|ไฟล์|camera|กล้อง|gallery|emoji|setting|ตั้งค่า|\bmode\b|โหมด|model|aspect|ratio|style|สไตล์|tool|เครื่องมือ|search|ค้นหา|copy|คัดลอก|edit|แก้ไข|new chat|แชทใหม่|dismiss|close|ปิด|error|retry|remove|ลบ|delete|clear|ล้าง|expand|ขยาย|collapse|dictat|audio|record|อัดเสียง|feedback|regenerat|สร้างใหม่|\b(dis)?like\b|thumb/i; // dismiss = ปุ่ม X ของแถบ error · remove/ลบ = ✕ ของรูปที่แนบ
   // ปุ่มที่เปิดหน้าต่างเลือกไฟล์/เมนู → ไม่ใช่ปุ่มส่งแน่นอน
   const opensPicker = (b) => !!(b.querySelector('input[type=file]') || (b.closest('label') && b.closest('label').querySelector('input[type=file]')) || b.getAttribute('aria-haspopup'));
   // ปุ่มที่เคยกดแล้วไม่ส่ง (จำไว้ ไม่กดซ้ำ)
@@ -789,14 +799,34 @@
   }
   const labelOf = (b) => `${b.getAttribute('aria-label') || ''} ${b.title || ''} ${b.textContent || ''}`.trim();
   const isDisabled = (b) => b.disabled || b.getAttribute('aria-disabled') === 'true';
-  function sendCandidates(input) {
+  // ปุ่มที่พาเปลี่ยนห้อง/หน้า — ห้ามนับเป็นปุ่มส่งเด็ดขาด (เคยไปกดไอคอน “แชตใหม่” ข้างช่องพิมพ์ → ห้องเปลี่ยน ช่องพิมพ์หาย ระบบนึกว่าส่งแล้ว)
+  const NAV_WORDS = /new chat|new conversation|start new|แชตใหม่|แชทใหม่|สนทนาใหม่|compose|history|ประวัติ|sidebar|แถบข้าง|home|หน้าแรก|profile|โปรไฟล์|account|บัญชี/i;
+  const navLike = (b) => !!(b.closest('a[href], nav, header, aside, [role=navigation], [role=banner], [role=complementary]')
+    || NAV_WORDS.test([labelOf(b), ...[...b.querySelectorAll('[aria-label], [title], title')].map((x) => x.getAttribute('aria-label') || x.getAttribute('title') || x.textContent || '')].join(' '))
+    || /new[-_ ]?(chat|conversation)|sidebar|nav/i.test(`${b.getAttribute('data-testid') || ''} ${b.id || ''}`));
+  // ส่วนของช่องพิมพ์ที่เห็นบนจอ — prompt ยาวทำให้ช่องสูงเกินจอ (เลื่อนในกรอบ) ถ้าวัดจากกลางช่องทั้งก้อน ปุ่มส่งจริงจะดูไกล
+  function inputRow(input) {
     const ir = input.getBoundingClientRect();
-    const cx = ir.right, cy = ir.top + ir.height / 2;
+    let top = Math.max(ir.top, 0), bottom = Math.min(ir.bottom, innerHeight);
+    for (let e = input.parentElement; e && e !== document.body; e = e.parentElement) { // กรอบที่เลื่อนได้/ตัดขอบ
+      if (!/auto|scroll|hidden|clip/.test(getComputedStyle(e).overflowY)) continue;
+      const r = e.getBoundingClientRect();
+      top = Math.max(top, r.top); bottom = Math.min(bottom, r.bottom);
+    }
+    if (bottom - top < 10) { top = Math.max(0, Math.min(ir.top, innerHeight - 10)); bottom = Math.min(innerHeight, Math.max(top + 10, ir.bottom)); }
+    return { left: ir.left, right: ir.right, width: ir.width, top, bottom };
+  }
+  // ระยะจากกลางปุ่มถึงขอบขวาของส่วนที่เห็น (ปุ่มส่งอยู่ขวา/ขวาล่างของช่อง)
+  const rowDist = (row, r) => { const y = r.top + r.height / 2; return Math.hypot(r.left + r.width / 2 - row.right, y < row.top ? row.top - y : y > row.bottom ? y - row.bottom : 0); };
+  const inRow = (row, r) => r.top >= row.top - 90 && r.bottom <= row.bottom + 90 && r.left >= row.left - 60 && r.left <= row.right + 160;
+  function sendCandidates(input) {
+    const row = inputRow(input), ir = input.getBoundingClientRect();
     return [...document.querySelectorAll('button, [role=button]')]
-      .filter((b) => !isOurs(b) && b.getBoundingClientRect().width > 0 && !opensPicker(b) && !badButtons.has(btnSig(b)))
-      .filter((b) => { const l = labelOf(b); return SEND_RE.test(l) && !NOT_SEND_RE.test(l); })
-      .map((b) => { const r = b.getBoundingClientRect(); return { b, strong: SEND_STRONG.test(labelOf(b)), d: Math.hypot(r.left + r.width / 2 - cx, r.top + r.height / 2 - cy) }; })
-      .filter((x) => x.d < 400)
+      .filter((b) => !isOurs(b) && b.getBoundingClientRect().width > 0 && !opensPicker(b) && !navLike(b) && !badButtons.has(btnSig(b)))
+      .filter((b) => { const l = labelOf(b); return SEND_RE.test(l) && !NOT_SEND_RE.test(l) && (SEND_STRONG.test(l) || l.length <= 24); }) // ไม่มีคำว่า Send = ต้องเป็นป้ายสั้น (ไม่ใช่ชิปแนะนำ “Create an image of …”)
+      .map((b) => { const r = b.getBoundingClientRect(); return { b, r, strong: SEND_STRONG.test(labelOf(b)), d: Math.min(rowDist(row, r), Math.hypot(r.left + r.width / 2 - ir.right, r.top + r.height / 2 - (ir.top + ir.height / 2))) }; })
+      // อยู่ในแถวช่องพิมพ์เท่านั้น — เดิมรับปุ่มในรัศมี 400 px เลยไปกด “Animate” บนรูปในแชต / ชิปแนะนำหน้าแชตใหม่
+      .filter((x) => x.d < 400 && (x.strong || (inRow(row, x.r) && x.r.top + x.r.height / 2 >= row.top))) // ชื่อ Send/ส่ง = ในรัศมี 400 px เหมือนเดิม (เดิมบีบให้อยู่ในแถว → ปุ่มส่งจริงหลุด ส่งไม่ได้) // ไม่มีคำว่า Send = ต้องไม่อยู่เหนือช่องพิมพ์ (ชิปแนะนำ/ปุ่มบนรูปที่เพิ่งทำ อยู่ข้างบน)
       .sort((a, b) => (b.strong - a.strong) || (a.d - b.d));
   }
   function findSendButton(input) {
@@ -813,11 +843,11 @@
   }
   // ปุ่มไอคอนไม่มีชื่อ ที่อยู่ขวาสุดของช่องพิมพ์ (หลายเว็บใช้เป็นปุ่มส่ง) — ใช้เมื่อหาปุ่มที่มีชื่อไม่เจอ
   function iconSendButton(input) {
-    const ir = input.getBoundingClientRect();
+    const row = inputRow(input);
     const c = [...document.querySelectorAll('button, [role=button]')].filter((b) => {
-      if (isOurs(b) || !shown(b) || !b.querySelector('svg') || opensPicker(b) || badButtons.has(btnSig(b))) return false;
+      if (isOurs(b) || !shown(b) || !b.querySelector('svg') || opensPicker(b) || navLike(b) || badButtons.has(btnSig(b))) return false;
       const l = labelOf(b), r = b.getBoundingClientRect();
-      return !NOT_SEND_RE.test(l) && r.left >= ir.left + ir.width * 0.5 && r.left < ir.right + 120 && Math.abs(r.top + r.height / 2 - (ir.top + ir.height / 2)) < Math.max(80, ir.height);
+      return !NOT_SEND_RE.test(l) && l.length <= 24 && r.left >= row.left + row.width * 0.5 && r.left < row.right + 120 && r.top + r.height / 2 >= row.top - 10 && r.top + r.height / 2 <= row.bottom + Math.max(80, row.bottom - row.top); // แถวช่องพิมพ์ที่เห็นบนจอเท่านั้น (ไม่ใช่ปุ่มบนรูป/ข้อความในแชต)
     });
     return c.sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)[0] || null;
   }
@@ -943,12 +973,14 @@
     return picker;
   }
   function rememberBad(b) {
+    if (SEND_STRONG.test(labelOf(b))) return; // ปุ่มชื่อ Send/ส่ง ไม่จำว่าผิด (เคยจำปุ่มส่งจริงที่แค่ช้า → กดปุ่มอื่นแทนตลอด)
     badButtons.add(btnSig(b));
     try { chrome.storage.local.set({ mahBadButtons: [...badButtons].slice(-30) }); } catch (e) {}
   }
   async function submit(input) {
     // รอปุ่มส่งที่กดได้ (รูปอัปโหลดเสร็จ) สูงสุด 60 วิ · ถ้า 3 วิแล้วไม่มีปุ่มที่มีชื่อเลย ลองปุ่มไอคอนขวาสุดของช่องพิมพ์
     const sentNow = () => !input.isConnected || !textOf(input) || isBusy();
+    const done = (how) => { sends++; composerDirty = false; return how; };
     let forgot = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       const t0 = Date.now();
@@ -968,8 +1000,9 @@
         continue;
       }
       if (!btn) break;
-      const picker = await guardedClick(btn);
-      if (!picker && await waitFor(sentNow, 8000, 400)) return how;
+      const picker = await guardedClick(btn), strong = SEND_STRONG.test(labelOf(btn));
+      if (!picker && await waitFor(sentNow, strong ? 15000 : 8000, 400)) return done(how); // prompt ยาว + รูปกำลังอัป → meta.ai ล้างช่องช้า
+      if (strong && !picker) { log('⚠ กดปุ่มส่งแล้ว meta.ai ยังไม่รับ — กดใหม่', 'warn'); continue; } // ปุ่มส่งจริง: กดซ้ำ ไม่ไปลองปุ่มอื่น
       // ไม่ใช่ปุ่มส่ง → จำไว้ แล้วลองตัวถัดไป
       rememberBad(btn);
       log(`⚠ ปุ่ม ${how} ไม่ใช่ปุ่มส่ง${picker ? ' (เปิดหน้าต่างเลือกไฟล์ — กันไว้แล้ว)' : ''} — จำไว้ไม่กดอีก ลองปุ่มอื่น`, 'warn');
@@ -977,8 +1010,11 @@
     // สุดท้าย: กด Enter ในช่องพิมพ์
     input.focus();
     for (const t of ['keydown', 'keypress', 'keyup']) input.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }));
-    if (await waitFor(sentNow, 8000, 400)) return 'Enter';
-    throw new Error(`หาปุ่มส่งที่ใช้ได้ไม่เจอ${isBusy() ? ' (meta.ai ยังทำงานอยู่)' : ''} — กด 🔍 คัดลอกข้อมูลหน้าเว็บ ส่งให้ผู้พัฒนาดู`);
+    if (await waitFor(sentNow, 8000, 400)) return done('Enter');
+    const nearBtns = (() => { const box = findInput(); if (!box) return ''; const ir = box.getBoundingClientRect();
+      return [...document.querySelectorAll('button, [role=button]')].filter((b) => !isOurs(b) && shown(b)).map((b) => { const r = b.getBoundingClientRect(); return { l: labelOf(b).replace(/\s+/g, ' ').slice(0, 20) || '(ไอคอน)', d: Math.hypot(r.left + r.width / 2 - ir.right, r.top + r.height / 2 - ir.bottom) }; })
+        .filter((x) => x.d < 300).sort((a, b) => a.d - b.d).slice(0, 6).map((x) => `“${x.l}”`).join(' '); })();
+    throw new Error(`หาปุ่มส่งที่ใช้ได้ไม่เจอ${isBusy() ? ' (meta.ai ยังทำงานอยู่)' : ''}${nearBtns ? ` · ปุ่มแถวช่องพิมพ์: ${nearBtns}` : ''} — กด 🔍 คัดลอกข้อมูลหน้าเว็บ ส่งให้ผู้พัฒนาดู`);
   }
 
   const srcOf = (v) => v.currentSrc || v.src || (v.querySelector('source') || {}).src || '';
@@ -1025,20 +1061,47 @@
     while ((n = w.nextNode())) {
       if (!plainQuotes(n.nodeValue).includes(head)) continue;
       const e = n.parentElement;
-      if (e && !isOurs(e) && !e.closest(NOT_CHAT)) last = e;
+      if (e && !isOurs(e) && !e.closest(NOT_CHAT) && !e.closest('nav, aside, header, [role=navigation], [role=complementary]')) last = e; // ไม่นับชื่อห้องในแถบซ้าย (meta.ai ตั้งชื่อห้องจากข้อความแรก = มีบรรทัด Product ของเรา)
     }
     return last;
+  }
+  // ---------- meta.ai พังตอนส่ง (“Something went wrong”) แล้วพาไปหน้าแชตใหม่ว่างๆ → กดกลับห้องที่ส่ง prompt (บนสุดของแถบซ้าย) แล้วพิมพ์ “ทำมา” ----------
+  const homePath = () => { try { const a = document.querySelector('a[data-testid="new-chat-button"]'); return new URL((a && a.getAttribute('href')) || '/', location.href).pathname; } catch (e) { return '/'; } };
+  const linkPath = (a) => { try { const u = new URL(a.getAttribute('href'), location.href); return u.origin === location.origin ? u.pathname : ''; } catch (e) { return ''; } };
+  // หลุดจากห้องที่ส่ง prompt = อยู่หน้าแชตใหม่ (ลิงก์ New chat) และไม่เห็นข้อความ prompt ของเราบนหน้า
+  const leftChat = (known) => location.pathname === homePath() && !findAnchor(known.head);
+  // ห้องแชตในแถบซ้าย = ลิงก์ที่ท้ายเป็นรหัสห้อง · บนสุด = ล่าสุด (แถบซ้ายพับอยู่ = ตัวแรกในหน้า)
+  function topChatLink() {
+    const home = homePath();
+    const c = [...document.querySelectorAll('a[href]')].filter((a) => !isOurs(a) && a.getAttribute('data-testid') !== 'new-chat-button' && a.closest('nav, aside, [role=navigation]'))
+      .filter((a) => { const p = linkPath(a), id = p.split('/').pop(); return p && p !== home && id.length >= 8 && /\d/.test(id); });
+    const vis = c.filter((a) => a.getBoundingClientRect().height > 0);
+    return (vis.length ? vis.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0] : c[0]) || null;
+  }
+  async function backToChat(known) {
+    const a = (known.chatPath && [...document.querySelectorAll('a[href]')].find((x) => !isOurs(x) && linkPath(x) === known.chatPath)) || topChatLink();
+    if (!a) { log('⚠ หาห้องที่ส่ง prompt ในแถบซ้ายไม่เจอ (เปิดแถบซ้ายของ meta.ai ค้างไว้)', 'warn'); return false; }
+    log(`↩ กดห้อง “${(a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30)}” (${linkPath(a)})`);
+    a.click();
+    if (await waitFor(() => findAnchor(known.head) && findInput(), 15000, 500)) { log('↩ กลับเข้าห้องที่ส่ง prompt แล้ว', 'ok'); return true; }
+    log('⚠ ห้องบนสุดไม่ใช่ห้องที่ส่ง prompt — ไม่พิมพ์ “ทำมา” ในห้องนี้ กลับไปแชตใหม่', 'warn');
+    const nc = document.querySelector('a[data-testid="new-chat-button"], button[data-testid="new-chat-button"]');
+    if (nc) { nc.click(); await waitFor(() => location.pathname === homePath() && findInput(), 10000, 500); }
+    return false;
   }
   // รอวิดีโอใหม่จนนิ่ง (วิดีโอเดียวกันที่โชว์หลายที่ = นับครั้งเดียว)
   // want = ความยาวที่สั่ง (วิ) · เกิน 10 วิ: meta.ai โชว์ท่อน 10 วิแรกก่อนแล้วค่อยต่อ → ต้องได้คลิปยาว ≥ 75% ก่อนถึงจะโหลด (เดิมโหลดท่อน 10 วิไปก่อน)
   async function waitForNewVideos(known, ms, want = 0) {
     const end = Date.now() + ms, minDur = want > 10 ? want * 0.75 : 0;
-    let prev = '', stable = 0, toldOld = false, refusedSeen = 0, short = null, idleSince = 0;
+    let prev = '', stable = 0, toldOld = false, refusedSeen = 0, short = null, idleSince = 0, away = 0, lastPath = location.pathname, lastTell = Date.now();
     const diag = { old: 0, total: 0 };
     while (Date.now() < end) {
       await nap(2000);
+      if (location.pathname !== homePath()) known.chatPath = location.pathname; // ห้องที่ส่ง prompt (ไว้กดกลับเข้าไป)
       let fresh = allVideos().filter((v) => srcOf(v) && !known.els.has(v) && !known.norm.has(normSrc(srcOf(v))));
       diag.total = allVideos().length;
+      if (location.pathname !== lastPath) { log(`🔀 meta.ai เปลี่ยนหน้า ${lastPath} → ${location.pathname}${findAnchor(known.head) ? '' : ' · ไม่เห็น prompt ของเราบนหน้า'}`, 'warn'); lastPath = location.pathname; }
+      if (Date.now() - lastTell >= 30000) { lastTell = Date.now(); log(`⏳ รอคลิป ${Math.round((Date.now() - (known.sentAt || Date.now())) / 1000)} วิ · หน้า ${location.pathname} · ${findAnchor(known.head) ? 'เห็น prompt ของเรา' : 'ไม่เห็น prompt ของเรา'} · วิดีโอใหม่ ${fresh.length} · meta.ai ${isBusy() ? 'กำลังทำงาน' : 'ว่าง'}`); }
       // ชอบวิดีโอที่อยู่หลัง prompt ที่เพิ่งส่ง แต่ถ้าหน้าเว็บเรียงคลิปใหม่ไว้บนสุด ก็รับตัวที่ไม่ใช่ของเก่าได้
       const anchor = findAnchor(known.head);
       if (anchor) {
@@ -1060,6 +1123,9 @@
       if (!ready.length) { // ยังไม่มีคลิป แต่ meta.ai ขึ้นข้อความผิดพลาด → เลิกรอ
         const err = newMetaError(known);
         if (err) throw new MetaError(err);
+        // meta.ai พังแล้วพาไปหน้าแชตใหม่ว่างๆ (แถบ error หายไปกับหน้าเดิม) — เดิมรอคลิปบนหน้าว่าง 10 นาที
+        away = !fresh.length && Date.now() - (known.sentAt || 0) > 8000 && leftChat(known) ? away + 1 : 0;
+        if (away >= 3) throw new MetaError('meta.ai พาไปหน้าแชตใหม่ว่างๆ (Something went wrong)');
         // ตอบปฏิเสธเป็นข้อความ (ไม่มีวิดีโอใหม่ + เขียนเสร็จแล้ว) 2 รอบติด → ข้ามเลย ไม่รอจนหมดเวลา
         const why = !fresh.length && !isBusy() && Date.now() - (known.sentAt || 0) > 15000 ? metaRefusal(known) : '';
         refusedSeen = why ? refusedSeen + 1 : 0;
@@ -1093,10 +1159,23 @@
   }
   const blobToDataUrl = (blob) => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
   // โหลดผ่าน chrome.downloads (รองรับชื่อไทย + โฟลเดอร์ Downloads/ShopeeVideo)
+  // ไฟล์วิดีโอจริงเท่านั้น: ลิงก์หมดอายุ/แชตถูกลบ → ได้หน้า error (HTML) แทนวิดีโอ → เคยส่งขึ้น Reel แล้ว Facebook ตอบ 422
+  const okVideo = (b) => !!(b && b.size > 20000 && (!b.type || /^video\/|octet-stream/.test(b.type)));
+  async function fetchVideo(src) {
+    const res = await fetch(src);
+    if (!res.ok) { const e = new Error(`ลิงก์คลิปใช้ไม่ได้แล้ว (HTTP ${res.status})`); e.dead = true; throw e; }
+    const blob = await res.blob();
+    if (!okVideo(blob)) { const e = new Error('ลิงก์คลิปไม่ได้ส่งไฟล์วิดีโอกลับมา'); e.dead = true; throw e; }
+    return blob;
+  }
   async function readVideo(v) {
     const src = srcOf(v);
-    try { return { src, blob: await (await fetch(src)).blob() }; } catch (e) {
+    try { return { src, blob: await fetchVideo(src) }; } catch (e) {
       if (src.startsWith('blob:')) throw e;
+      if (!e.dead) { // หน้า meta.ai โหลดคลิปข้ามเว็บไม่ได้ → ให้ส่วนเสริมโหลด (ได้ไฟล์จริงไว้โพสต์ Reel · เดิมได้แค่ลิงก์ → Facebook โหลดไม่ได้ 422)
+        const r = await bg({ type: 'fetchMedia', url: src });
+        if (r.ok) { try { const blob = await (await fetch(r.dataUrl)).blob(); if (okVideo(blob)) return { src, blob }; } catch (x) {} }
+      }
       return { src, blob: null }; // ลิงก์ข้ามโดเมน → ให้ Chrome โหลดเอง
     }
   }
@@ -1224,11 +1303,16 @@
   }
   // พิมพ์ "ทำมา" ต่อในแชตเดิม (meta.ai ยังมี prompt + รูปจากข้อความก่อน) แล้วตั้งจุดจับ error ใหม่
   async function nudgeMeta(...knowns) {
+    if (leftChat(knowns[0])) { // อยู่หน้าแชตใหม่ว่างๆ → กลับห้องที่ส่ง prompt ก่อน (ไม่พิมพ์ “ทำมา” ลงห้องว่าง)
+      log('↩ meta.ai พาไปหน้าแชตใหม่ — กดกลับห้องบนสุดในแถบซ้าย แล้วพิมพ์ “ทำมา”');
+      if (!(await backToChat(knowns[0]))) throw new MetaError('กลับเข้าห้องที่ส่ง prompt ไม่ได้');
+    }
     await dismissMetaErrors();
     const input = await waitFor(findInput, 15000);
     if (!input || !(await insertInto(input, 'ทำมา'))) throw new MetaError('พิมพ์ “ทำมา” ไม่ได้');
     await nap(500);
     await submit(findInput() || input);
+    log(`⌨ พิมพ์ “ทำมา” แล้ว · หน้า ${location.pathname}`);
     const base = errBaseline();
     knowns.forEach((k) => Object.assign(k, base));
   }
@@ -1247,24 +1331,26 @@
     Object.assign(known, errBaseline());
     const pk = imgSnapshot(known.head); // รูปที่มีอยู่ก่อนส่ง (ไม่นับเป็นรูปโพสต์)
     const files = sendFiles();
+    const flat = prompt.replace(/\s+/g, ' ').trim();
     if (files.length) {
       const r = await attachFiles(files);
       if (!r.ok) throw new Error('แนบรูปไม่ได้');
+      log(`📎 ${base}: แนบรูป ${files.length} ไฟล์ (${files.map((x) => x.name).join(', ').slice(0, 90)}) · หน้า ${location.pathname}`);
       await nap(1500);
     }
     const box = findInput() || input;
     if (!(await insertInto(box, prompt))) throw new Error('ใส่ข้อความไม่ได้');
     // meta.ai ไม่บอกเพดานความยาว prompt → เช็กว่าท้าย prompt (กฎห้ามราคา/เด็ก) อยู่ในช่องพิมพ์ครบ ไม่งั้นไม่ส่ง
-    const flat = prompt.replace(/\s+/g, ' ').trim();
     const inBox = () => boxText(findInput() || box);
     if (!(await waitFor(() => inBox().includes(flat.slice(-14)), 2000, 200))) {
       throw new Error(`meta.ai รับ prompt ไม่ครบ (ในช่องมี ${inBox().length.toLocaleString()} จาก ${flat.length.toLocaleString()} ตัวอักษร) — ไม่ส่ง เพราะกฎท้าย prompt จะหาย · ลดฉาก/รายละเอียดสินค้าแล้วลองใหม่`);
     }
+    log(`⌨ ${base}: วาง prompt แล้ว (ในช่องพิมพ์ ${inBox().length.toLocaleString()} ตัวอักษร) — กำลังกดส่ง`);
     await nap(800);
     const how = await submit(box);
     known.sentAt = pk.sentAt = Date.now(); // นับเวลา "meta.ai ไม่ทำงาน" จากตอนส่งจริง
     if (files.length) ignoreSentImages(pk); // รูปที่แนบไปไม่นับเป็นรูปโพสต์
-    log(`➤ ${base}: ส่งแล้ว (${how})${files.length ? ` + รูป ${files.length}` : ''}${withPhotos ? ' · สั่งรูปโพสต์ 4 ภาพด้วย' : ''} · prompt ${flat.length.toLocaleString()} ตัวอักษร`);
+    log(`➤ ${base}: ส่งแล้ว (${how})${files.length ? ` + รูป ${files.length}` : ''}${withPhotos ? ' · สั่งรูปโพสต์ 4 ภาพด้วย' : ''} · prompt ${flat.length.toLocaleString()} ตัวอักษร · หน้า ${location.pathname}`);
     setStatus(p, `⏳ กำลังสร้างคลิป ${seconds()} วิ${label}`);
     // รอคลิป (คลิปเดียว) · meta.ai ขึ้น error → พิมพ์ "ทำมา" ต่อในแชตเดิม (นับรวมกับ makeClip รอบละ 3 ครั้ง)
     const tries = extras.tries || { fails: 0 };
@@ -1452,7 +1538,9 @@
     await waitIdle();
     const labels = (b) => [b.getAttribute('aria-label'), b.title, b.textContent, ...[...b.querySelectorAll('[aria-label], [title], title')].map((x) => x.getAttribute('aria-label') || x.getAttribute('title') || x.textContent)];
     const isNew = (b) => labels(b).some((x) => NEW_CHAT_RE.test(String(x || '').replace(/\s+/g, ' ').trim())) || /new[-_ ]?(chat|conversation)/i.test(b.getAttribute('data-testid') || ''); // ป้าย/ชื่อ/ตัวหนังสือ (ของปุ่มหรือไอคอนข้างใน) ตัวใดตัวหนึ่งตรง
-    const btn = [...document.querySelectorAll('a, button, [role=button]')].find((b) => !isOurs(b) && shown(b) && isNew(b));
+    // ลิงก์ New chat ของ meta.ai (data-testid) — กดได้แม้แถบซ้ายพับอยู่ · ไม่มี = หาจากชื่อปุ่ม
+    const ownNew = () => document.querySelector('a[data-testid="new-chat-button"], button[data-testid="new-chat-button"]');
+    const btn = ownNew() || [...document.querySelectorAll('a, button, [role=button]')].find((b) => !isOurs(b) && shown(b) && isNew(b));
     if (!btn) {
       if (!run.on) { log('⚠ หาปุ่มแชตใหม่ของ meta.ai ไม่เจอ — ทำต่อในแชตเดิม', 'warn'); return false; }
       log('🆕 หาปุ่มแชตใหม่ไม่เจอ — โหลดหน้าแรก meta.ai ใหม่ (= แชตใหม่) แล้วทำคิวต่อเองใน 10 วิ', 'warn');
@@ -1462,12 +1550,26 @@
       await nap(60000); // หน้ากำลังโหลดใหม่ — โค้ดหน้านี้จะหยุดเอง
       return false;
     }
-    const url = location.href, oldPath = location.pathname, vids = allVideos().length;
+    const url = location.href, oldPath = location.pathname, vids = allVideos().length, hadOurs = !!findAnchor(CLIP_HEAD);
     btn.click();
-    const ok = await waitFor(() => findInput() && (location.href !== url || allVideos().length < vids || !allVideos().length), 15000, 500);
-    log(ok ? '🆕 เปิดแชตใหม่บน meta.ai แล้ว (หน้าเบาลง)' : '⚠ เปิดแชตใหม่ไม่สำเร็จ — ทำต่อในแชตเดิม', ok ? 'ok' : 'warn');
+    // เปลี่ยนห้องจริง = ลิงก์หน้าเปลี่ยน หรือ prompt ของเรา/คลิปหายจากหน้า · เดิมเช็กทันทีหลังกด และผ่านเลยถ้าไม่มีวิดีโอบนจอ (meta.ai ยังไม่เปลี่ยนห้อง)
+    // → ไปวาง prompt ตัวถัดไปในห้องเก่า แล้วห้องเปลี่ยนทีหลัง prompt หาย · แชตเก่าไม่ถูกลบ (ลิงก์ยังเป็นห้องเดิม)
+    await nap(1000);
+    const moved = () => location.href !== url || (hadOurs ? !findAnchor(CLIP_HEAD) : allVideos().length < vids);
+    const ok = hadOurs || vids ? await waitFor(() => findInput() && moved(), 15000, 500)
+      : (await nap(2000), findInput()); // ห้องนี้ไม่มีข้อความ/คลิปของเรา (ตัวก่อนพลาดก่อนส่ง) — ดูไม่ออกว่าเปลี่ยนแล้วไหม · แค่ให้ช่องพิมพ์ว่าง
+    log(ok ? `🆕 เปิดแชตใหม่บน meta.ai แล้ว (${oldPath} → ${location.pathname})` : `⚠ เปิดแชตใหม่ไม่สำเร็จ (ยังอยู่ ${location.pathname}) — ทำต่อในแชตเดิม`, ok ? 'ok' : 'warn');
     await nap(2000);
-    if (ok && st.delOldChat !== false) await deleteChat(oldPath);
+    if (ok && st.delOldChat !== false) {
+      await deleteChat(oldPath);
+      if (oldPath !== '/' && location.pathname === oldPath) { // กด … ของแชตเก่าในแถบซ้ายแล้วหน้าพาเข้าแชตเก่า → กลับไปแชตใหม่ ไม่งั้นสินค้าตัวถัดไปลงแชตเก่า
+        log('⚠ หลังลบแชตเก่า หน้าพากลับเข้าแชตเก่า — เปิดแชตใหม่อีกครั้ง', 'warn');
+        const again = ownNew() || [...document.querySelectorAll('a, button, [role=button]')].find((b) => !isOurs(b) && shown(b) && isNew(b));
+        if (again) { again.click(); await waitFor(() => location.pathname !== oldPath && findInput(), 15000, 500); }
+        await nap(1500);
+        if (location.pathname === oldPath) { log('⚠ กลับไปแชตใหม่ไม่ได้ — ทำต่อในแชตเดิม', 'warn'); return false; }
+      }
+    }
     return !!ok;
   }
   // ลบแชตเก่าบน meta.ai (หลังเปิดแชตใหม่แล้ว): แถบซ้าย → ปุ่ม … ของแชตนั้น → ลบ → ยืนยัน
@@ -1510,7 +1612,7 @@
       if (okBtn) press(okBtn);
       if (!(await waitFor(() => !linkOf(), 6000, 500))) return fail('กดลบแล้วแชตเก่ายังอยู่');
       delFails = 0;
-      log('🗑 ลบแชตเก่าบน meta.ai แล้ว', 'ok');
+      log(`🗑 ลบแชตเก่าบน meta.ai แล้ว (${path}) · ตอนนี้อยู่ ${location.pathname}`, 'ok');
       return true;
     } catch (e) {
       if (e instanceof Stopped) throw e;
@@ -1527,6 +1629,7 @@
   async function freshChat() { // เปิดแชตใหม่สำเร็จ = เริ่มนับใหม่
     if (!(await newChat())) return false;
     chatCount = { path: location.pathname, n: 0 }; saveChat();
+    composerDirty = false; // ห้องใหม่ = ช่องพิมพ์ว่าง
     return true;
   }
   // สั่ง meta.ai ล้างไฟล์เก่า (ข้อความแยก ไม่ทำวิดีโอ) ทุก N คลิปที่ทำเสร็จ
@@ -1573,7 +1676,8 @@
     const tried = new Set();
     const nextItem = () => todo().find((x) => !tried.has(x.id));
     try {
-      if (chatFull() && nextItem()) { log(`แชตนี้ส่งไปแล้ว ${chatCount.n} สินค้า (ครบ ${st.newChat}) — เปิดแชตใหม่ก่อนเริ่ม`); await freshChat(); }
+      if (composerDirty && nextItem()) { log('มีรูป/ข้อความที่ยังไม่ได้ส่งค้างในช่องพิมพ์ — เปิดแชตใหม่ก่อนเริ่ม (ไม่ให้ปนกับสินค้าตัวแรก)', 'warn'); await freshChat(); }
+      else if (chatFull() && nextItem()) { log(`แชตนี้ส่งไปแล้ว ${chatCount.n} สินค้า (ครบ ${st.newChat}) — เปิดแชตใหม่ก่อนเริ่ม`); await freshChat(); }
       for (let i = 0, p; (p = nextItem()); i++) {
         if (ctxGone()) { ctxGoneNotice(); throw new Stopped(); }
         tried.add(p.id);
@@ -1587,6 +1691,7 @@
         const name = safeName(p.name || `สินค้า ${i + 1}`);
         runItem = p;
         setRunFlag(true);
+        const sends0 = sends;
         try {
           if (useGemini && needsScript(p)) {
             setStatus(p, '✍ Gemini กำลังเขียนบท');
@@ -1608,8 +1713,8 @@
           modestNow = MODEST_RE.test(p.name || ''); modeOverride = modestNow ? 'none' : undefined;
           if (modestNow) log(`👗 ${name}: ชุดชั้นใน/ชุดนอนเซ็กซี่/ชุดว่ายน้ำ — ถ่ายสินค้าล้วน ไม่มีคนใส่ (meta.ai ไม่ทำแบบมีนางแบบ)`);
           if (pg) log(`📘 ${name}: จะลงเพจ “${pg.name}”${presenterOverride ? ` · หน้า: ${presenterOverride.name}` : presenterOverride === null ? ' · ไม่ใช้รูปหน้า' : ''}`);
-          // ต้องมีรูปไว้โพสต์เพจ (เลือกเพจไว้ + โพสต์แบบมีรูป) → สั่งรูปให้ด้วยแม้ไม่ได้เปิดปุ่มรูป Facebook
-          const needPhotos = !!st.photos || (fbPagesOn().length > 0 && st.fbPost !== 'reel');
+          // รูปโพสต์ 4 ภาพ: สั่งเฉพาะตอนติ๊ก 📷 ไว้
+          const needPhotos = !!st.photos; // ตามช่องติ๊ก 📷 เท่านั้น (เดิมเลือกเพจ FB + โพสต์แบบมีรูป = สั่งรูปเองทั้งที่ติ๊กออก) · ไม่มีรูป = โพสต์เพจได้แค่ Reel
           for (let vi = 0; vi < variants; vi++) {
             const tag = variants > 1 ? `-${'AB'[vi]}` : '';
             // รูปโพสต์ + คอนเทนต์โพสต์สั่งใน prompt เดียวกับคลิป (เฉพาะแบบแรก กันได้ซ้ำ)
@@ -1638,9 +1743,10 @@
           log(`❌ ${name}: ${e.message || e} — ข้ามไปตัวถัดไป`, 'err');
         }
         if (nextItem()) await fillBetween(); // 🧩 โพสต์คั่นของเพจที่ยังไม่ครบ
-        if (nextItem()) await gPitchBetween(); // แท็บ 👥: ข้อความขาย (meta.ai ว่างตอนนี้) — ก่อนเปิดแชตใหม่ ข้อความนี้จะอยู่ในแชตเก่า (ถูกลบ) ไม่ปนกับสินค้าตัวถัดไป
-        // ครบ N สินค้าในแชตนี้ (สำเร็จหรือพลาดก็นับ) + ยังมีตัวต่อ → เปิดแชตใหม่ให้หน้าเบา · ไม่มีตัวต่อ = เปิดตอนเริ่มรอบหน้า
-        if (+st.newChat && bumpChat() >= +st.newChat && nextItem()) { log(`ส่งไปแล้ว ${chatCount.n} สินค้าในแชตนี้ (ตั้งไว้ทุก ${st.newChat}) — เปิดแชตใหม่`); await freshChat(); }
+        // พลาดก่อนส่ง แต่รูป/ข้อความค้างในช่องพิมพ์ → เปิดแชตใหม่ให้ช่องว่างก่อน (ไม่งั้นตัวถัดไปส่งรูปของตัวนี้ไปด้วย)
+        // ครบ N สินค้าในแชตนี้ (นับเฉพาะตัวที่ส่งข้อความไปจริง — สำเร็จหรือพลาดหลังส่งก็นับ) + ยังมีตัวต่อ → เปิดแชตใหม่ให้หน้าเบา · ไม่มีตัวต่อ = เปิดตอนเริ่มรอบหน้า
+        if (composerDirty && nextItem()) { log(`${name}: ยังไม่ได้ส่ง — รูป/ข้อความค้างในช่องพิมพ์ เปิดแชตใหม่ให้ช่องว่างก่อนตัวถัดไป`, 'warn'); await freshChat(); }
+        else if (+st.newChat && sends > sends0 && bumpChat() >= +st.newChat && nextItem()) { log(`ส่งไปแล้ว ${chatCount.n} สินค้าในแชตนี้ (ตั้งไว้ทุก ${st.newChat}) — เปิดแชตใหม่`); await freshChat(); }
         presenterOverride = undefined; modeOverride = undefined; modestNow = false; // สินค้าตัวถัดไปเลือกพรีเซนเตอร์/โหมดใหม่
         const gap = (+st.gap || 0) * 1000;
         const nx = gap && nextItem();
@@ -1840,15 +1946,9 @@
     .svinfo .good { color: var(--ok); } .svinfo .bad { color: var(--warnc); }
     #histList { margin-top: 8px; max-height: 360px; overflow: auto; } .hrow { display: flex; gap: 8px; align-items: center; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--line2); }
     .hrow .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--fg); } .hrow .when { color: var(--muted); white-space: nowrap; } .hrow .icon { font-size: 13px; padding: 0 4px; }
-    .grp { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; } .grp.off { opacity: .55; }
-    .grp .gtop { display: flex; gap: 4px; align-items: center; } .grp .gtop .chips { flex: 1; min-width: 0; } .grp .gp { margin-top: 8px; }
-    #gName { margin-top: 4px; }
-    .gpagebox { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px 4px; margin-bottom: 12px; } .gpagebox .qrow:last-child { margin-bottom: 4px; }
-    .gpage { font-size: 13px; font-weight: 700; color: var(--fg); margin: 2px 0 8px; }
     .fbrow input.pgniche { flex: 1; min-width: 0; padding: 7px 10px; font-size: 13px; } #fillList { margin-top: 10px; }
     .gbtns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; align-items: center; max-width: 230px; }
     .gpitch { font-size: 12px; color: var(--text2); white-space: pre-line; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    .gpitch.wait { color: var(--muted); }
     /* ขอบซ้ายของแผง: ลากปรับความกว้าง (จำไว้) */
     #grip { position: absolute; left: -4px; top: 0; bottom: 0; width: 8px; cursor: ew-resize; z-index: 2; }
     #grip:hover, #grip.on { background: linear-gradient(90deg, transparent 3px, var(--accent) 3px, var(--accent) 5px, transparent 5px); }
@@ -1897,7 +1997,7 @@
   <div id="panel" hidden>
     <div id="grip" title="ลากเพื่อปรับความกว้างแผง (ดับเบิลคลิก = ขนาดเดิม)"></div>
     <header><h1><span class="logo">🎬</span>Shopee Video</h1><div class="hbtns"><button id="theme" title="สลับธีมมืด/สว่าง"></button><button id="close" title="ปิด">×</button></div></header>
-    <nav class="tabs"><button data-tab="queue" id="tabQueue">📋 คิวสินค้า</button><button data-tab="search">🔎 หาสินค้า</button><button data-tab="fb" id="tabFb">📘 เพจ FB</button><button data-tab="groups" id="tabGroups">👥 กลุ่ม</button><button data-tab="sv" id="tabSv">🛍 Shopee Video</button><button data-tab="settings">⚙️ ตั้งค่าคลิป</button></nav>
+    <nav class="tabs"><button data-tab="queue" id="tabQueue">📋 คิวสินค้า</button><button data-tab="search">🔎 หาสินค้า</button><button data-tab="fb" id="tabFb">📘 เพจ FB</button><button data-tab="sv" id="tabSv">🛍 Shopee Video</button><button data-tab="settings">⚙️ ตั้งค่าคลิป</button></nav>
     <main id="tab-queue">
       <div class="qtools"><div class="chips small" id="qFilter"></div><input type="text" id="qFind" placeholder="🔍 หาชื่อในคิว"></div>
       <div class="qbar" id="qbar"></div>
@@ -1940,6 +2040,11 @@
         <details class="adv" id="fillBox"><summary>🧩 โพสต์คั่น (ไม่ขายของ · ปั้นเพจ) <span class="sub" id="fillSum"></span></summary>
           <div class="opt"><div class="opt-label">แทรกในปุ่ม “โพสต์ทั้งหมด” — โพสต์คั่น 1 โพสต์ ทุก…</div><div class="chips" data-key="fillEvery"></div>
             <div class="hint" id="fillHint"></div></div>
+          <div class="opt"><div class="opt-label">ใครเขียน: <span id="gKeySum"></span></div>
+            <input type="password" id="gKey" placeholder="Gemini API key (ฟรี: aistudio.google.com → Get API key) · ไม่ใส่ = meta.ai เขียนในแชต" autocomplete="off">
+            <input type="text" id="gModel" placeholder="รุ่น (ว่าง = เลือกให้เอง)" style="margin-top:6px">
+            <div style="margin-top:8px"><button class="btn" id="gTestBtn">🔌 ทดสอบ key</button></div>
+            <div id="gTest" class="hint" style="white-space:pre-wrap"></div></div>
           <div class="spbulk two"><button class="btn" id="fillMake"></button></div>
           <div id="fillList"></div>
         </details>
@@ -1949,29 +2054,9 @@
           <div style="margin-top:8px"><button class="btn" id="fbLoad">ดึงรายชื่อเพจ</button></div>
         </details>
       </section>
-      <div class="listhead">คลิปที่ทำเสร็จ <span class="sub" id="fbListSub"></span><span class="lhbtns"><button class="pill" id="fbClear" hidden></button><button class="pill" id="fbWipe" hidden></button></span></div>
+      <div class="listhead">คลิปที่ทำเสร็จ <span class="sub" id="fbListSub"></span><span class="lhbtns"><button class="pill" id="fbFiles" title="เลือกไฟล์คลิป .mp4 หลายไฟล์จากโฟลเดอร์ Downloads/ShopeeVideo (Ctrl+A ได้) — จับคู่กับสินค้าในรายการจากชื่อไฟล์ ไว้ลง Reel (คลิปเก่าที่ลิงก์ meta.ai หมดอายุแล้ว)">📁 ใส่ไฟล์คลิป</button><input type="file" id="fbFileIn" accept="video/*" multiple hidden><button class="pill" id="fbClear" hidden></button><button class="pill" id="fbWipe" hidden></button></span></div>
       <div class="spbulk"><button class="btn dark" id="fbAll" hidden></button></div>
       <div id="fbList"></div>
-    </main>
-    <main id="tab-groups" hidden>
-      <section class="sec">
-        <h2>👥 แชร์ลงกลุ่ม <span class="sub" id="gState"></span></h2>
-        <div class="hint" style="margin:0 0 12px">📤 = ก๊อปข้อความขาย + ลิงก์ แล้วเปิดหน้าต่างแชร์ → “แชร์ในกลุ่ม” → เลือกกลุ่ม → Ctrl+V → โพสต์ · ↗ = เปิดโพสต์ แชร์เอง</div>
-        <details class="adv" id="gKeyBox"><summary>✍ ข้อความขาย: <span id="gKeySum"></span></summary>
-          <input type="password" id="gKey" placeholder="Gemini API key (ฟรี: aistudio.google.com → Get API key)" autocomplete="off">
-          <input type="text" id="gModel" placeholder="รุ่น (ว่าง = เลือกให้เอง)" style="margin-top:6px">
-          <div style="margin-top:8px"><button class="btn" id="gTestBtn">🔌 ทดสอบ key</button></div>
-          <div id="gTest" class="hint" style="white-space:pre-wrap"></div>
-        </details>
-        <details class="adv" id="gSetup"><summary>กลุ่มของฉัน — เพิ่มกลุ่ม / เลือกเพจที่แชร์ลงแต่ละกลุ่ม</summary>
-          <div id="gGroups"></div>
-          <input type="text" id="gName" placeholder="ชื่อกลุ่ม (ตรงกับชื่อบน Facebook — ไว้หาตอนเลือกกลุ่มที่จะแชร์)">
-          <input type="text" id="gUrl" placeholder="ลิงก์กลุ่ม (ไม่บังคับ · ไว้เปิดดูกฎกลุ่ม) เช่น facebook.com/groups/…" style="margin-top:6px">
-          <div style="margin-top:8px"><button class="btn" id="gAdd">+ เพิ่มกลุ่ม</button></div>
-        </details>
-      </section>
-      <div class="listhead">วันนี้แชร์อะไรลงกลุ่มไหน <span class="sub" id="gTodaySub"></span><span class="lhbtns"><button class="pill" id="gWipe" hidden></button></span></div>
-      <div id="gToday"></div>
     </main>
     <main id="tab-sv" hidden>
       <section class="sec">
@@ -1996,8 +2081,10 @@
           <div class="hint">15 / 20 วิ: สั่งวิดีโอเดียวเต็มความยาว ห้ามแบ่งพาร์ท/ส่งแยก ไม่ต่อคลิป</div></div>
         <div class="opt"><label class="opt-label chk"><input type="checkbox" id="photos"> 📷 ทำรูปโพสต์ Facebook 4 ภาพด้วย</label>
           <div class="hint">สั่งใน prompt เดียวกับคลิป: รูปสี่เหลี่ยมจัตุรัส 1080x1080 สี่ภาพ แล้วโหลดเก็บคู่คลิป (ชื่อสินค้า-photo-1…4) · ไม่มาพร้อมคลิป = ขอแยกอีกข้อความ</div></div>
-        <div class="opt"><div class="opt-label">จังหวะ</div><div class="chips" data-key="pace"></div>
-          <div class="hint">เร็ว = ตัดภาพถี่ · ปกติ = ตัดทุก 2–3 วิ (ไม่สั่งให้พูดเร็ว — meta.ai คิดบทเองให้พอดีคลิป)</div></div>
+        <div class="opt"><div class="opt-label">จังหวะตัดภาพ</div><div class="chips" data-key="pace"></div>
+          <div class="hint">เร็ว = ตัดภาพถี่ · ปกติ = ตัดทุก 2–3 วิ (ไม่เกี่ยวกับความเร็วพูด)</div></div>
+        <div class="opt"><div class="opt-label">ความเร็วพูด</div><div class="chips" data-key="talk"></div>
+          <div class="hint">เร็ว = พูดรัวต่อเนื่อง · ปกติ = พูดสบายๆ · ช้า = พูดช้าชัด มีเว้นจังหวะ (พูดช้า = บทสั้นลงให้จบทันคลิป · บทพูดยังให้ meta.ai คิดเอง · แนวกระซิบ ASMR = ช้าเสมอ)</div></div>
         <div class="opt"><div class="opt-label">เพลง</div><div class="chips" data-key="music"></div>
           <div class="hint">ตามจังหวะ = จังหวะเร็วมีเพลงคลอ / ปกติไม่มี · เพลงเบาลงตอนพูดเสมอ</div></div>
         <div class="opt"><div class="opt-label">สไตล์</div><div class="chips" data-key="style"></div></div>
@@ -2445,6 +2532,60 @@
     save(); renderAll();
     msg(`↺ “${p.name.slice(0, 30)}” จะทำใหม่ตอนรันคิว${why ? ` · สั่งแก้: ${REDO.find(([k]) => k === why)[1]}` : ''}${note}`, 'ok');
   }
+  // 🎬 ลง Reel: โพสต์รูปขึ้นแล้วแต่ Reel ไม่ขึ้น → ลงแค่ Reel ในเพจเดิม (ไม่โพสต์รูปซ้ำ) · ไม่มีคลิปแล้ว → 📁 เลือกไฟล์ .mp4 จาก ShopeeVideo
+  // โพสต์รุ่นเก่า (ก่อนมีป้าย reelMissing): ขึ้นแค่รูป ไม่มี Reel ทั้งที่ตั้งโพสต์ “รูป + Reel” = Reel พลาด → ลงได้เหมือนกัน
+  const reelLeft = (p) => { const last = (p.fbPosts || []).slice(-1)[0]; return last && last.pageId && (last.reelMissing || (st.fbPost === 'both' && /รูป/.test(last.what || '') && !/Reel/.test(last.what || ''))) ? last : null; };
+  const reelPick = new Set(); // สินค้าที่ต้องเลือกไฟล์คลิปเอง
+  function reelBtn(p) {
+    const pick = reelPick.has(p.id);
+    const b = el('button', 'pill', fbBusy.has(p.id) ? 'กำลังลง Reel...' : pick ? '📁 เลือกไฟล์คลิป' : '🎬 ลง Reel');
+    b.title = pick ? 'เลือกไฟล์ .mp4 ของสินค้านี้จากโฟลเดอร์ Downloads/ShopeeVideo → ลง Reel ให้' : `รูปขึ้นแล้วแต่ Reel ยังไม่ขึ้น — ลงแค่ Reel ในเพจ “${reelLeft(p).page}” (ไม่โพสต์รูปซ้ำ)`;
+    b.disabled = fbBusy.has(p.id);
+    b.onclick = (e) => {
+      e.stopPropagation();
+      if (!pick) { fbReelOnly(p); return; }
+      const inp = document.createElement('input'); // เปิดหน้าต่างเลือกไฟล์ทันที (ต้องอยู่ในจังหวะกดปุ่ม)
+      inp.type = 'file'; inp.accept = 'video/*';
+      inp.onchange = async () => {
+        const file = inp.files && inp.files[0];
+        if (!file) return;
+        if (!okVideo(file)) { msg('ไฟล์นี้ไม่ใช่คลิปวิดีโอ — เลือกไฟล์ .mp4 ของสินค้านี้', 'err'); return; }
+        mediaFor.set(p.id, { ...(mediaFor.get(p.id) || {}), video: { src: '', blob: file } });
+        mediaPut(`clip:${p.id}`, file);
+        reelPick.delete(p.id);
+        fbReelOnly(p);
+      };
+      inp.click();
+    };
+    return b;
+  }
+  async function fbReelOnly(p) {
+    const last = reelLeft(p), page = last && fb.pages.find((x) => x.id === last.pageId);
+    if (!last || !page) { msg('หาเพจของโพสต์นี้ไม่เจอ — แท็บ 📘 → ดึงรายชื่อเพจใหม่', 'err'); return; }
+    if (fbBusy.has(p.id)) return;
+    fbBusy.add(p.id); renderAll();
+    try {
+      msg(`🎬 กำลังเตรียมคลิปของ “${(p.name || '').slice(0, 30)}”...`, '');
+      const { video } = await fbMediaFor(p);
+      if (!video) { reelPick.add(p.id); msg('ไม่มีไฟล์คลิปในส่วนเสริมแล้ว (ลิงก์ meta.ai หมดอายุ) — กด 📁 เลือกไฟล์คลิป แล้วเลือก .mp4 ของสินค้านี้จากโฟลเดอร์ ShopeeVideo', 'err'); return; }
+      const tags = (p.tags && p.tags.length ? p.tags : ['#รีวิว', '#ของดีบอกต่อ']).join(' ');
+      const body = [(p.caption || promptName(p.name) || p.name || '').trim(), aiLine(), '', tags].filter((x, k) => x || k === 2).join('\n').trim();
+      const comment = st.fbComment && p.link ? cartComment(p.link) : '';
+      msg(`🎬 กำลังลง Reel ในเพจ “${page.name}”...`, '');
+      const r = await bg({ type: 'fbReel', pageId: page.id, token: page.token, video, description: comment || !p.link ? body : `${body}\n\n${cartComment(p.link)}`, comment });
+      if (!r.ok) { msg(`ลง Reel ไม่ได้: ${r.error}${fbHint(r.error)}`, 'err'); log(`❌ ${(p.name || '').slice(0, 30)}: ลง Reel ไม่ได้ — ${r.error}`, 'err'); return; }
+      delete last.reelMissing;
+      last.what = `${last.what} · Reel${comment ? (r.commented ? ' + ปักตะกร้า ✓' : ' (คอมเมนต์ไม่ได้ — กด 🛒 ปักตะกร้าใหม่)') : ''}`;
+      if (comment && !r.commented && r.videoId) last.missed = [...(last.missed || []), { id: r.videoId, what: 'Reel' }];
+      save();
+      log(`📘 ${(p.name || '').slice(0, 30)}: ลง Reel ในเพจ “${page.name}” แล้ว ✓`, 'ok');
+      msg(`ลง Reel ในเพจ “${page.name}” แล้ว ✓`, 'ok');
+    } catch (e) {
+      msg(`ลง Reel ไม่ได้: ${e.message || e}`, 'err');
+    } finally {
+      fbBusy.delete(p.id); renderAll();
+    }
+  }
   function recommentBtn(p) { // โพสต์ขึ้นแล้วแต่คอมเมนต์ลิงก์ไม่ติด → ปักตะกร้าใหม่ (ไม่โพสต์ซ้ำ)
     const b = el('button', 'pill', fbBusy.has(p.id) ? 'กำลังปักตะกร้า...' : '🛒 ปักตะกร้าใหม่');
     b.title = `คอมเมนต์ลิงก์ยังไม่ติดใน${fbMissed(p).missed.map((x) => x.what).join(' + ')} — กดเพื่อคอมเมนต์ “${cartComment('ลิงก์')}” อีกครั้ง`;
@@ -2479,6 +2620,7 @@
       else if (pg) meta.append(el('span', '', `→ ${pg.name}`));
       if (!p.link) meta.append(el('span', 'bad', 'ไม่มีลิงก์ตะกร้า'), linkBtn(p));
       if (fbMissed(p)) meta.append(recommentBtn(p));
+      if (reelLeft(p)) meta.append(reelBtn(p));
       b = el('button', posts.length ? 'btn' : 'btn dark', fbBusy.has(p.id) ? 'กำลังโพสต์...' : posts.length ? '📘 อีกครั้ง' : '📘 โพสต์');
       b.disabled = fbBusy.has(p.id) || !pg || !p.link;
       b.title = !p.link ? 'ยังไม่มีลิงก์ affiliate — กด 🔗 เอาลิงก์ก่อน (โพสต์ไปก็ไม่ได้ค่าคอม)' : pg ? `โพสต์${({ both: 'รูป 4 ภาพ + Reel', photos: 'รูป 4 ภาพ', reel: 'Reel' })[st.fbPost] || ''} ลงเพจ “${pg.name}”${st.fbComment ? ' + ปักตะกร้าในคอมเมนต์' : ''}` : 'เลือกเพจด้านบนก่อน';
@@ -2505,7 +2647,7 @@
     $('fbClear').hidden = !nPosted;
     $('fbClear').className = fbClearArm ? 'pill danger' : 'pill';
     $('fbClear').textContent = fbClearArm ? `กดอีกครั้งเพื่อลบ ${nPosted} ตัว` : `🧹 เคลียร์ตัวที่โพสต์แล้ว (${nPosted})`;
-    $('fbClear').title = 'ลบสินค้าที่โพสต์ลงเพจแล้วออกจากคิว (แท็บคิวด้วย) — คลิป/รูป/.txt ในเครื่องยังอยู่ · แชร์ลงกลุ่ม (แท็บ 👥) ยังได้ · ป้าย “เคยโพสต์” ในหน้าค้นหายังจำไว้ · ตัวที่ปักตะกร้ายังไม่ติดไม่ลบ';
+    $('fbClear').title = 'ลบสินค้าที่โพสต์ลงเพจแล้วออกจากคิว (แท็บคิวด้วย) — คลิป/รูป/.txt ในเครื่องยังอยู่ · ป้าย “เคยโพสต์” ในหน้าค้นหายังจำไว้ · ตัวที่ปักตะกร้ายังไม่ติดไม่ลบ';
     // 🗑 ลบทั้งหมด: คลิปที่ทำเสร็จทุกตัว (โพสต์แล้วหรือยังก็ลบ) — เริ่มใหม่หมด · กำลังโพสต์อยู่ไม่ลบ
     const all = fbDoneAll(), nUnposted = all.filter((p) => !(p.fbPosts || []).length).length;
     $('fbWipe').hidden = !all.length;
@@ -2649,7 +2791,7 @@
     // หัวข้อหมวดที่พับไว้: โชว์ค่าที่เลือกอยู่ (ไม่ต้องกางดู)
     const lab = (k) => (((OPTIONS[k] || []).find(([v]) => v === st[k]) || [])[1] || '').replace(/\s*\(.*\)\s*$/, '');
     const pr = presenters.find((x) => x.id === st.presenterId);
-    $('sumClip').textContent = [lab('duration'), `จังหวะ${lab('pace')}`, `เพลง${lab('music')}`, st.photos ? '📷 รูป 4 ภาพ' : ''].filter(Boolean).join(' · ');
+    $('sumClip').textContent = [lab('duration'), `จังหวะ${lab('pace')}`, `พูด${lab('talk')}`, `เพลง${lab('music')}`, st.photos ? '📷 รูป 4 ภาพ' : ''].filter(Boolean).join(' · ');
     $('sumPeople').textContent = [m === 'none' ? 'ไม่เห็นคน' : m === 'hands' ? 'เห็นแค่มือ' : m === 'animal' ? 'สัตว์' : pr ? `หน้า: ${pr.name}` : 'ไม่ใช้รูปหน้า', `เสียง${lab('tone')}`].join(' · ');
     $('sumScript').textContent = lab('scriptMode').replace(/^\S+\s/, '');
     $('sumText').textContent = st.text === 'none' ? 'ไม่มี' : [lab('text'), st.fx !== 'auto' ? lab('fx') : ''].filter(Boolean).join(' · ');
@@ -2782,7 +2924,7 @@
     const home = !!(pick && pick.home);
     const kw = home ? '' : pick ? pick.kw : $('spKw').value.trim();
     if (!more && !kw && !home) { msg('พิมพ์คำค้นก่อน — หรือกดหมวดด้านล่าง', 'err'); return; }
-    if (sp.busy) return;
+    if (sp.busy) { msg('กำลังค้นอยู่ — รอให้เสร็จก่อนแล้วค่อยกดใหม่', ''); return; }
     const api = more ? sp.api : useApi(); // โหลดเพิ่มใช้ทางเดิมของรอบค้นนี้
     if (!more) {
       Object.assign(sp, { kw, home, cat: pick && pick.cat != null ? pick.cat : null, page: 0, all: [], seen: new Set(), more: false, api, sort: st.spSort === '2' ? 'sales' : '' });
@@ -2792,6 +2934,7 @@
     const sortType = (sp.home || sp.cat != null) && st.spSort === '1' ? '2' : st.spSort;
     sp.busy = true; sp.err = '';
     let sortMiss = false;
+    try { // วาดหน้าพังกลางทาง = ไม่ให้ค้าง “กำลังค้น” ถาวร
     // เฉพาะ Extra Comm: หน้าเว็บกรองหลังโหลด → ได้น้อยก็โหลดหน้าถัดไปให้เองจนได้เพิ่ม ≥ 20 รายการ (สูงสุด 5 หน้าต่อครั้ง)
     const want = spShown().length + 20;
     for (let n = 0; n < 5; n++) {
@@ -2807,11 +2950,12 @@
       const fresh = (api ? r.nodes.map(fromApi) : r.items.map(fromWeb)).filter((x) => x.name && !sp.seen.has(x.key));
       fresh.forEach((x) => { sp.seen.add(x.key); x.page = sp.page; }); // จำหน้าที่โหลดมา (เอาลิงก์: กลับไปหน้านั้น)
       sp.all.push(...fresh);
+      if (!api) msg(`หน้า ${sp.page}: ได้สินค้าใหม่ ${fresh.length} ตัว${st.spXtra ? ` (เป็น Extra Comm ${fresh.filter((x) => x.isExtra).length})` : ''}${r.why ? ` · ไปหน้าถัดไปไม่ได้: ${r.why}` : ''}`, r.why ? 'err' : '');
       sp.more = api ? r.hasNextPage : !!r.more && (!next || fresh.length > 0); // หน้าเว็บ: โหลดเพิ่มแล้วไม่มีของใหม่ = หมด
       if (!st.spXtra || !sp.more || spShown().length >= want) break;
     }
-    sp.busy = false;
-    if (!api) msg(sortMiss ? 'หน้า Affiliate หาปุ่มเรียงขายดีไม่เจอ — เรียงตามยอดขายจากสินค้าที่โหลดมาให้แทน' : '', '');
+    } finally { sp.busy = false; }
+    if (!api && sortMiss) msg('หน้า Affiliate หาปุ่มเรียงขายดีไม่เจอ — เรียงตามยอดขายจากสินค้าที่โหลดมาให้แทน', ''); // ไม่ล้างข้อความ “หน้า N: ได้ … ตัว”
     renderSearch();
   }
 
@@ -3018,17 +3162,22 @@
     let m = mediaFor.get(p.id) || {};
     const s = p.fbMedia || {};
     // รีเฟรชหน้าแล้ว (หน่วยความจำว่าง) → ใช้ที่เก็บไว้ในเครื่อง ก่อนลิงก์ของ meta.ai (แชตอาจถูกลบไปแล้ว)
-    if (!(m.video && m.video.blob)) { const blob = await mediaGet(`clip:${p.id}`); if (blob) m = { ...m, video: { ...(m.video || {}), blob } }; }
+    if (!(m.video && okVideo(m.video.blob))) { const blob = await mediaGet(`clip:${p.id}`); if (okVideo(blob)) m = { ...m, video: { ...(m.video || {}), blob } }; }
     if (!(m.photoData && m.photoData.length)) { const pd = await mediaGet(`photos:${p.id}`); if (pd && pd.length) m = { ...m, photoData: pd }; }
     const photos = [];
     for (const src of (m.photoData && m.photoData.length ? m.photoData : m.photos && m.photos.length ? m.photos : s.photos) || []) { // สำเนาในหน่วยความจำก่อน (แชตอาจถูกลบไปแล้ว)
       try { photos.push({ dataUrl: await toJpegDataUrl(src) }); } catch (e) { if (/^https:/.test(src)) photos.push({ url: src }); }
     }
     let video = null;
-    if (m.video && m.video.blob) video = { dataUrl: await blobToDataUrl(m.video.blob) };
+    if (m.video && okVideo(m.video.blob)) video = { dataUrl: await blobToDataUrl(m.video.blob) };
     else {
       const src = (m.video && m.video.src) || s.video;
-      if (src) { try { video = { dataUrl: await blobToDataUrl(await (await fetch(src)).blob()) }; } catch (e) { if (/^https:/.test(src)) video = { url: src }; } }
+      // ลิงก์ตาย (ได้ error แทนวิดีโอ) = ไม่มีคลิป · โหลดในหน้าไม่ได้เพราะข้ามโดเมน = ให้ Facebook ไปโหลดเอง
+      if (src) {
+        try { video = { dataUrl: await blobToDataUrl(await fetchVideo(src)) }; } catch (e) {
+          if (!e.dead && /^https:/.test(src)) { const r = await bg({ type: 'fetchMedia', url: src }); video = r.ok ? { dataUrl: r.dataUrl } : /HTTP 4\d\d|ไม่ได้ส่งไฟล์/.test(r.error || '') ? null : { url: src }; } // ส่วนเสริมโหลดแทน · ลิงก์ตาย = ไม่มีคลิป
+        }
+      }
     }
     return { photos, video };
   }
@@ -3043,6 +3192,8 @@
   const fbHint = (err) => (FB_BLOCK_RE.test(err || '') ? ` — ${FB_BLOCK_TIP}` : /^190\b|expired|session has|validating access token/i.test(err || '') ? ' — token หมดอายุ: ขอ User Token ใหม่ → Access Token Debugger → Extend Access Token → คัดลอก token ตัวใหม่ที่ขึ้นมา (ไม่ใช่ตัวเดิม · ใช้ได้ ~60 วัน) → แท็บ 📘 เพจ FB → วาง → ดึงรายชื่อเพจ'
     : /^(10|2\d\d)\b|permission/i.test(err || '') ? ' — token ไม่มีสิทธิ์: สร้าง token ใหม่ติ๊ก pages_manage_posts, pages_manage_engagement' : '');
   // คอมเมนต์ไม่ติดเพราะ token ไม่มีสิทธิ์คอมเมนต์ในนามเพจ (ไม่ใช่ Reel ยังประมวลผล) — ข้อความจาก graph(): "200: (#200) ..."
+  // อัปโหลดคลิปแล้ว Facebook ตอบ 422 = ไฟล์ใช้ไม่ได้ (ลิงก์คลิปหมดอายุ ได้หน้า error มาแทน)
+  const fbHint422 = (err) => (/HTTP 422|422/.test(err || '') ? ' — ไฟล์คลิปใช้ไม่ได้ (ลิงก์ meta.ai หมดอายุ) · กด 🎬 ลง Reel → 📁 เลือกไฟล์ .mp4 จากโฟลเดอร์ ShopeeVideo' : '');
   const noCmtPerm = (err) => /(^|\s)(10|2\d\d)(\/\d+)?:|permission|pages_manage_engagement/i.test(err || '');
   const CMT_PERM = 'token ไม่มีสิทธิ์คอมเมนต์ในนามเพจ (pages_manage_engagement): ขอ token ใหม่ที่มีสิทธิ์นี้ → ดึงรายชื่อเพจ → กด 🛒 ปักตะกร้าใหม่ (ไม่ต้องโพสต์ซ้ำ)';
   const fbMissed = (p) => { const last = (p.fbPosts || []).slice(-1)[0]; return last && last.missed && last.missed.length ? last : null; };
@@ -3108,7 +3259,7 @@
     await submit(findInput() || input);
     if (+st.newChat) { chatCount.n = Math.max(chatCount.n || 0, +st.newChat); saveChat(); } // แชตนี้มีโพสต์คั่นแล้ว → สินค้าถัดไปเปิดแชตใหม่ (ไม่ปนกับคลิป)
     let text = '', prev = '';
-    for (let t = 0; t < 60; t++) { await pause(1500); text = cleanFill(readBlock(head)); if (text && text === prev && !isBusy()) break; prev = text; }
+    for (let t = 0, idle = 0; t < 60; t++) { await pause(1500); text = cleanFill(readBlock(head)); if (text && text === prev && !isBusy()) break; idle = !text && !isBusy() && t > 10 ? idle + 1 : 0; if (idle >= 6) break; prev = text; } // ตอบจบแล้วไม่มีกล่องข้อความ = เลิกรอ
     return text;
   }
   async function fillTextGemini(pg) {
@@ -3127,7 +3278,7 @@
   }
   async function fillMakeAll() { // ปุ่ม: ทำให้ทุกเพจที่ใช้อยู่ ครบเพจละ 2
     if (fill.on) { fill.on = false; renderFill(); return; } // กดซ้ำ = หยุดหลังตัวที่ทำอยู่
-    if (!gemini.key && (run.on || gWrite.on)) return;
+    if (!gemini.key && run.on) return;
     const need = [];
     for (const pg of fbPagesOn()) for (let k = fillReady(pg.id).length; k < FILL_KEEP; k++) need.push(pg);
     if (!need.length) { msg('ทุกเพจมีโพสต์คั่นพร้อมแล้ว ✓', 'ok'); return; }
@@ -3149,7 +3300,9 @@
   async function fillBetween() { // รันคิว: พักระหว่างสินค้า → ทำโพสต์คั่น 1 โพสต์ให้เพจที่ยังไม่ครบ (พลาด 2 ครั้งติด = พักไว้ทั้งรอบ)
     const pg = !gemini.key && fill.fails < 2 && !fill.on && fillNeed()[0]; // มี Gemini = เขียนให้ตอนโพสต์ทั้งหมดเลย ไม่ต้องใช้แชต
     if (!pg) return;
-    log(`🧩 ระหว่างพัก: ให้ meta.ai เขียนโพสต์คั่นของเพจ “${pg.name}”`);
+    const nx = nextItem();
+    if (nx) setStatus(nx, '🧩 รอ meta.ai เขียนโพสต์คั่นก่อน');
+    log(`🧩 ระหว่างพัก: ให้ meta.ai เขียนโพสต์คั่นของเพจ “${pg.name}” — คิวรอสักครู่ (ใส่ Gemini key ในหมวด 🧩 = ไม่ต้องรอ)`);
     fill.on = true; renderFill();
     try { await makeFiller(pg); fill.fails = 0; log(`🧩 ได้โพสต์คั่นของเพจ “${pg.name}” แล้ว`, 'ok'); }
     catch (e) { if (e instanceof Stopped) throw e; fill.fails++; log(`⚠ ทำโพสต์คั่นไม่ได้: ${e.message || e}${fill.fails >= 2 ? ' — พักการทำโพสต์คั่นระหว่างคิวไว้ก่อน (กดปุ่มทำเองที่แท็บ 📘 ได้)' : ''}`, 'warn'); }
@@ -3172,11 +3325,12 @@
   }
   function renderFill() {
     const all = fb.fillers || [];
+    $('gKeySum').textContent = gemini.key ? 'Gemini ✓ (เขียนเบื้องหลัง คิวไม่ต้องรอ)' : 'meta.ai เขียนในแชต (คิวรอตอนพักระหว่างสินค้า)';
     $('fillHint').textContent = gemini.key ? 'Gemini เขียนโพสต์ไม่ขายของ (ทริค / ชวนคุย / คำถาม) ตาม “แนวเพจ” · ข้อความล้วน ไม่มีรูป ไม่มีลิงก์ · ไม่ซ้ำเรื่องเดิม — ถึงรอบแล้วยังไม่มี = เขียนให้ตอนนั้นเลย'
-      : 'ยังไม่ใส่ Gemini key (แท็บ 👥) — meta.ai เขียนในแชตแทน ตอนพักระหว่างสินค้าในคิว หรือกดปุ่มด้านล่าง · ข้อความล้วน ไม่มีรูป ไม่มีลิงก์';
+      : 'ยังไม่ใส่ Gemini key — meta.ai เขียนในแชตแทน ตอนพักระหว่างสินค้าในคิว หรือกดปุ่มด้านล่าง · ข้อความล้วน ไม่มีรูป ไม่มีลิงก์';
     $('fillSum').textContent = +st.fillEvery ? `พร้อมโพสต์ ${all.length}${fill.on ? ' · กำลังทำ...' : ''}` : 'ปิดอยู่';
     $('fillMake').textContent = fill.on && (gemini.key || !run.on) ? `⏹ หยุดทำโพสต์คั่น (${fill.done}/${fill.total})` : `✍ ทำโพสต์คั่นให้ทุกเพจ (เพจละ ${FILL_KEEP})`;
-    $('fillMake').disabled = (!gemini.key && (run.on || gWrite.on)) || (!fill.on && !fbPagesOn().length);
+    $('fillMake').disabled = (!gemini.key && run.on) || (!fill.on && !fbPagesOn().length);
     $('fillMake').title = gemini.key ? 'Gemini เขียนเตรียมไว้ (ดูก่อนโพสต์ได้) — ไม่กดก็ได้ ตอนโพสต์ทั้งหมดเขียนให้เอง' : run.on ? 'กำลังรันคิว — ส่วนเสริมทำให้เองตอนพักระหว่างสินค้า' : 'ให้ meta.ai เขียนในแชตนี้ ทีละโพสต์ — ระหว่างนี้ปุ่ม ▶ รอก่อน';
     $('fillList').replaceChildren(...all.map((x) => {
       const r = el('div', 'card qrow'), mid = el('div', 'mid'), btns = el('span', 'gbtns'), cov = el('div', 'cover');
@@ -3259,10 +3413,10 @@
       const done = [], fails = [], missed = []; // missed = โพสต์ขึ้นแล้วแต่คอมเมนต์ลิงก์ไม่ติด → กด 🛒 ปักตะกร้าใหม่ได้ (ไม่ต้องโพสต์ซ้ำ)
       let photosPosted = false, photoPost = '';
       const run1 = async (label, ok, req) => {
-        if (!ok) { fails.push(label === 'รูป' ? `รูป: ไม่มีรูปโพสต์ของตัวนี้ (ตอนทำคลิปปิด 📷 รูป Facebook 4 ภาพไว้ / meta.ai ไม่ได้ทำรูป / รีเฟรชหน้าแล้วรูปในหน่วยความจำหาย)` : `${label}: ไม่มีไฟล์คลิป (ทำใหม่แล้วโพสต์ทันที — ลิงก์คลิปของ meta.ai หมดอายุได้)`); return; }
+        if (!ok) { fails.push(label === 'รูป' ? `รูป: ไม่มีรูปโพสต์ของตัวนี้ (ตอนทำคลิปปิด 📷 รูป Facebook 4 ภาพไว้ / meta.ai ไม่ได้ทำรูป / รีเฟรชหน้าแล้วรูปในหน่วยความจำหาย)` : `${label}: ไม่มีไฟล์คลิปในส่วนเสริมแล้ว (ลิงก์คลิปของ meta.ai หมดอายุ/แชตถูกลบ) — กด 🎬 ลง Reel → 📁 เลือกไฟล์ .mp4 จากโฟลเดอร์ ShopeeVideo`); return; }
         msg(`📘 กำลังโพสต์${label}ลงเพจ “${page.name}”...`, '');
         const r = await bg({ ...req, pageId: page.id, token: page.token, comment });
-        if (!r.ok) { fails.push(`${label}: ${r.error}${fbHint(r.error)}`); if (FB_BLOCK_RE.test(r.error || '')) fbBlocked = page.name; return; }
+        if (!r.ok) { fails.push(`${label}: ${r.error}${fbHint(r.error) || fbHint422(r.error)}`); if (FB_BLOCK_RE.test(r.error || '')) fbBlocked = page.name; return; }
         if (req.type === 'fbPhotos') { photosPosted = true; photoPost = r.postId || ''; }
         if (comment && !r.commented && (r.videoId || r.postId)) missed.push({ id: r.videoId || r.postId, what: label });
         if (comment && !r.commented && FB_BLOCK_RE.test(r.commentError || '')) fbBlocked = page.name;
@@ -3273,8 +3427,8 @@
       if (wantReel) await run1('Reel', !!video, { type: 'fbReel', video, description: message });
       if (skipPhotos && done.length) done.push('ข้ามรูป (ไม่มีรูปโพสต์ของตัวนี้ — โพสต์ Reel อย่างเดียว)'); // ไม่นับว่าพลาด
       if (done.length) {
-        p.fbPosts = [...(p.fbPosts || []), { page: page.name, pageId: page.id, at: Date.now(), what: done.join(' · '), missed, ...(photoPost ? { photoPost } : {}) }];
-        if (photoPost) { gAddPost({ post: photoPost, pageId: page.id, page: page.name, name: (promptName(p.name) || p.name || '').slice(0, 80), caption: (p.caption || '').slice(0, 300), desc: cleanDesc(p.desc).slice(0, 300), link: p.link || '', pid: p.id, at: Date.now() }); saveFb(); } // แท็บ 👥 แชร์ลงกลุ่มได้
+        const reelMissing = wantReel && !done.some((d) => d.startsWith('Reel')); // รูปขึ้นแต่ Reel ไม่ขึ้น → ปุ่ม 🎬 ลง Reel (ไม่โพสต์รูปซ้ำ)
+        p.fbPosts = [...(p.fbPosts || []), { page: page.name, pageId: page.id, at: Date.now(), what: done.join(' · '), missed, ...(photoPost ? { photoPost } : {}), ...(reelMissing ? { reelMissing } : {}) }];
         histMark(p, 'fb', page.name);
         if (!assigned) { fb.next = (fb.next || 0) + 1; p.fbPageId = page.id; saveFb(); } // สินค้าตัวถัดไปลงเพจถัดไป
         save();
@@ -3350,264 +3504,6 @@
     if (!typing) $('fbPages').replaceChildren(...(fb.pages.length ? items : [el('div', 'empty', 'ยังไม่มีเพจ — ใส่ User Token ด้านล่างแล้วกด “ดึงรายชื่อเพจ”')]));
   }
 
-  // ---------- แท็บ 👥 แชร์โพสต์รูปจากเพจลงกลุ่ม — ส่วนเสริมเตรียมให้ (คัดลอกข้อความ + เปิดโพสต์) เรากดแชร์/โพสต์เอง ----------
-  // Facebook ปิด API โพสต์ลงกลุ่มแล้ว · ให้โปรแกรมกดแทน = เสี่ยงโดนจับบอท (บัญชีส่วนตัวที่ดูแลทุกเพจโดนด้วย) → ไม่ทำอัตโนมัติ
-  // fb.groups: [{ id, name, url, pages: [pageId] (ว่าง = ทุกเพจ), on }] · fb.gPosts: โพสต์รูปบนเพจที่แชร์ได้ [{ post, pageId, page, name, pid, at }] · fb.gLog: [{ post, group, at }]
-  const G_HOOKS = ['เจอของดีเลยเอามาแชร์ 👇', 'ใครกำลังหาอยู่ ลองดูตัวนี้ 👇', 'ส่งต่อของดีให้ในกลุ่ม 👇', 'แชร์ไว้เผื่อใครกำลังมองหา 👇', 'ของน่าใช้ เลยเอามาบอกต่อ 👇', 'ตัวนี้น่าสนใจ ลองดูกัน 👇'];
-  const gSkip = new Map(); // กลุ่ม → โพสต์ที่กด ↷ ตัวอื่น (เฉพาะรอบนี้ ไม่เก็บ)
-  const dayStart = () => new Date().setHours(0, 0, 0, 0);
-  const gToday = () => (fb.gLog || []).filter((x) => x.at >= dayStart());
-  const gPostUrl = (id) => { const [pg, po] = String(id).split('_'); return po ? `https://www.facebook.com/${pg}/posts/${po}` : `https://www.facebook.com/${id}`; };
-  function gAddPost(x) { // โพสต์รูปลงเพจสำเร็จ → เข้ารายการที่แชร์ลงกลุ่มได้ (แยกจากคิว — เคลียร์คิวแล้วยังแชร์ได้)
-    fb.gPosts = [...(fb.gPosts || []).filter((y) => y.post !== x.post), x].slice(-300);
-  }
-  // แผนวันนี้: กลุ่มละ 1 โพสต์ — ตัวที่ยังไม่เคยแชร์ลงกลุ่มนั้น จากเพจที่กลุ่มนี้รับ · วันนี้แชร์ไปน้อยกว่า/ใหม่กว่าขึ้นก่อน · ไม่ซ้ำโพสต์ข้ามกลุ่มถ้ามีตัวอื่น
-  function gPlan() {
-    const log = fb.gLog || [], today = gToday(), used = new Set();
-    const nToday = (post) => today.filter((x) => x.post === post).length;
-    return (fb.groups || []).filter((g) => g.on !== false).map((g) => {
-      const doneToday = today.filter((x) => x.group === g.id).slice(-1)[0];
-      if (doneToday) return { g, doneToday, post: (fb.gPosts || []).find((x) => x.post === doneToday.post) };
-      const sent = new Set(log.filter((x) => x.group === g.id).map((x) => x.post));
-      let cands = (fb.gPosts || []).filter((x) => !sent.has(x.post) && (!(g.pages || []).length || g.pages.includes(x.pageId)));
-      const skip = gSkip.get(g.id) || new Set();
-      if (cands.length && cands.every((x) => skip.has(x.post))) skip.clear(); // กดตัวอื่นจนครบ = วนกลับมาตัวแรก
-      cands = cands.filter((x) => !skip.has(x.post)).sort((a, b) => nToday(a.post) - nToday(b.post) || b.at - a.at);
-      const post = cands.find((x) => !used.has(x.post)) || cands[0];
-      if (post) used.add(post.post);
-      return { g, post, left: cands.length };
-    });
-  }
-  // 📤 แชร์: คัดลอกข้อความ (สลับคำทุกกลุ่ม ไม่มีลิงก์ Shopee) → เปิดโพสต์บนเพจ (แท็บเดิมทุกครั้ง) → นับว่าแชร์แล้ว (ไม่ได้แชร์จริง กด ↶)
-  // via = 'dialog' (หน้าต่างแชร์ของ Facebook — ค่าเริ่มต้น สั้นกว่า) · 'post' (เปิดโพสต์ แชร์จากปุ่มใต้โพสต์ — ในกลุ่มเห็นโพสต์รูปเต็มแน่นอน)
-  async function gShare(g, post, via = 'dialog') {
-    const n = (fb.gLog || []).filter((x) => x.group === g.id).length;
-    const hash = [...post.post].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
-    const pi = gPitchIdx(g, post);
-    // ลิงก์ตะกร้าแปะไปกับข้อความแชร์เลย (ผู้ใช้ขอ) — โพสต์เก่าที่ไม่ได้จำลิงก์ = เอาจากสินค้าในคิว · ไม่มีลิงก์ = บอกว่าอยู่ในคอมเมนต์ของโพสต์
-    const link = post.link || (products.find((y) => y.id === post.pid) || {}).link || '';
-    const tail = link ? cartComment(link) : '🛒 พิกัดอยู่ในคอมเมนต์ของโพสต์';
-    const text = pi >= 0 ? `${post.pitches[pi]}\n\n${tail}` : `${G_HOOKS[(n + hash) % G_HOOKS.length]}\n${tail}`;
-    try { await navigator.clipboard.writeText(text); } catch (e) { msg('คัดลอกข้อความไม่ได้ — คลิกที่แผงนี้ก่อนแล้วกดแชร์ใหม่', 'err'); return; }
-    if (via === 'post') window.open(gPostUrl(post.post), 'mahGroupShare');
-    else window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(gPostUrl(post.post))}`, 'mahGroupShareDlg', 'popup,width=680,height=720');
-    fb.gLog = [...(fb.gLog || []), { post: post.post, group: g.id, at: Date.now(), ...(pi >= 0 ? { pitch: pi } : {}) }].slice(-2000);
-    gPick.delete(g.id);
-    saveFb(); renderGroups();
-    msg(via === 'post' ? `คัดลอกข้อความแล้ว ✓ ในแท็บที่เปิด: กด “แชร์” ใต้โพสต์ → “กลุ่ม” → เลือก “${g.name}” → วาง (Ctrl+V) → โพสต์ · ไม่ได้แชร์จริง กด ↶`
-      : `คัดลอกข้อความแล้ว ✓ ในหน้าต่างแชร์: ด้านบนเลือก “แชร์ในกลุ่ม” → เลือก “${g.name}” → วาง (Ctrl+V) → โพสต์ · ไม่ได้แชร์จริง กด ↶`, 'ok');
-  }
-  let gWipeArm = false, gWipeTimer = 0;
-  function gRemovePost(post) { // เอาโพสต์ออกจากรายการแชร์ → กลุ่มได้โพสต์ถัดไป
-    fb.gPosts = (fb.gPosts || []).filter((x) => x.post !== post.post);
-    gPitchErr.delete(post.post);
-    saveFb(); renderGroups();
-    msg(`เอา “${post.name.slice(0, 30)}” ออกจากรายการแชร์แล้ว`, 'ok');
-  }
-  function gUndo(g) { // กดแชร์แล้วแต่ไม่ได้โพสต์จริง → ไม่นับ (แชร์ใหม่ได้ทันที)
-    const log = fb.gLog || [];
-    for (let i = log.length - 1; i >= 0; i--) if (log[i].group === g.id && log[i].at >= dayStart()) { log.splice(i, 1); break; }
-    saveFb(); renderGroups();
-  }
-  // ---------- ✍ ข้อความขายตอนแชร์ลงกลุ่ม: คิดตามสินค้าแต่ละตัว 5 แบบ ไม่ซ้ำกันทุกกลุ่ม ----------
-  // post.pitches = ข้อความที่เขียนแล้ว (สูงสุด 20) · gLog.pitch = แชร์ครั้งนั้นใช้ข้อความไหน → กลุ่มถัดไปได้ข้อความที่ยังไม่เคยใช้
-  const gPick = new Map(); // กลุ่ม → { post, i } ข้อความที่กด ✍ เลือกเอง
-  const gPitchErr = new Map(); // โพสต์ → เขียนไม่ได้เพราะอะไร (กด ↻ ลองใหม่)
-  const gCanWrite = () => !!gemini.key || !run.on; // meta.ai ใช้แชตเดียวกับคิว → รันคิวอยู่ = เขียนตอนพักระหว่างสินค้า
-  const gUsedPitch = (post) => new Set((fb.gLog || []).filter((x) => x.post === post.post && Number.isInteger(x.pitch)).map((x) => x.pitch));
-  function gPitchIdx(g, post) { // ข้อความที่จะใช้กับกลุ่มนี้: ที่กดเลือกเอง หรือตัวแรกที่ยังไม่เคยใช้กับโพสต์นี้ (ใช้ครบแล้ว = วน) · -1 = ยังไม่มี
-    const a = post.pitches || [];
-    if (!a.length) return -1;
-    const k = gPick.get(g.id);
-    if (k && k.post === post.post && k.i < a.length) return k.i;
-    const used = gUsedPitch(post), i = a.findIndex((_, j) => !used.has(j));
-    return i >= 0 ? i : (fb.gLog || []).filter((x) => x.post === post.post).length % a.length;
-  }
-  // โพสต์ในแผนวันนี้ที่ยังไม่มีข้อความที่ไม่เคยใช้ (และยังไม่เคยเขียนพลาด)
-  const gNeedPitch = () => gPlan().filter((x) => x.post && !x.doneToday && !gPitchErr.has(x.post.post) && (x.post.pitches || []).length < 20
-    && !(x.post.pitches || []).some((_, j) => !gUsedPitch(x.post).has(j))).map((x) => x.post);
-  const gPitchRules = (info, have) => [
-    'Write 5 different short Facebook group posts in Thai recommending this product (text only — no image or video).',
-    `Product: ${info.name}${info.caption ? ` — ${info.caption.replace(/\s+/g, ' ')}` : ''}${info.desc ? ` — details: ${info.desc}` : ''}`,
-    'Each post: 2–3 short lines in casual everyday Thai, like telling friends in the group about a good find; each from a different angle (a problem it solves, how it is used in daily life, who it suits, what stands out) with a different first line; 1–2 emoji.',
-    'Only what the product name and details show — do not invent specs or personal experiences.',
-    'No hashtags, links, price, discounts, promotions, freebies or urgency; no exaggerated, health or body claims; never mention children or babies.',
-    'Avoid ending sentences with นะ or เลยนะ. Use เรา for I/we; never ผม, ดิฉัน, ครับ, ค่ะ or คะ.',
-    have.length ? `Already used — write new ones that start differently: ${have.slice(-5).map((x) => `"${x.split('\n')[0]}"`).join(', ')}` : '',
-  ].filter(Boolean);
-  // ข้อความที่ได้ → แยกทีละโพสต์ (คั่นด้วย ---) · ตัดเลขข้อ/แฮชแท็ก/ลิงก์ · ทิ้งตัวที่มีคำต้องห้าม (ราคา/โปร/เกินจริง)
-  function parsePitches(raw) {
-    return String(raw || '').replace(/[*_`]+/g, '').split(/^\s*-{3,}\s*$/m)
-      .map((x) => x.replace(/#[^\s#,.;:()]+/g, '').replace(URL_RE, '').split('\n').map((l) => l.trim()).filter(Boolean)
-        .map((l, k) => (k ? l : l.replace(/^(\d+\s*[.)]|(post|โพสต์|แบบ(ที่)?)\s*\d+\s*[:：.)-]?)\s*/i, ''))).filter(Boolean).join('\n'))
-      .filter((x) => x.length >= 8 && !checkText(x).length).slice(0, 8);
-  }
-  async function gPitchGemini(rules) {
-    const t = await askGemini([...rules, 'Return JSON only: {"posts": ["<post 1>", "<post 2>", "<post 3>", "<post 4>", "<post 5>"]}'].join('\n'), []);
-    let j = null;
-    try { j = JSON.parse(String(t).replace(/^```(json)?|```$/g, '').trim()); } catch (e) {}
-    return parsePitches((j && Array.isArray(j.posts) ? j.posts : []).map(String).join('\n---\n'));
-  }
-  // meta.ai: ส่งข้อความ (ตัวหนังสือล้วน) → อ่านกล่องโค้ดในคำตอบ (กล่องโค้ดไม่โดนจัดรูปแบบ)
-  function readPitches(head) {
-    const anchor = findAnchor(head);
-    if (!anchor) return [];
-    const after = (x) => !isOurs(x) && !x.closest('[contenteditable], textarea') && anchor.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING;
-    let blocks = [...document.querySelectorAll('pre')].filter(after);
-    if (!blocks.length) blocks = [...document.querySelectorAll('code')].filter(after);
-    return parsePitches(blocks.map((b) => b.innerText).join('\n---\n'));
-  }
-  async function gPitchMeta(name, rules) {
-    const pause = (ms) => (run.on ? nap(ms) : sleep(ms)); // ไม่ได้รันคิว = ปุ่มหยุดคิวไม่เกี่ยว
-    const first = `Group posts for: "${name}"`, head = first.slice(0, 60);
-    for (let t = 0; t < 150 && isBusy(); t++) await pause(2000); // meta.ai ยังทำงานก่อนหน้าอยู่
-    let input = null;
-    for (let t = 0; t < 30 && !(input = findInput()); t++) await pause(1000);
-    if (!input || !(await insertInto(input, [first, ...rules, 'Put all 5 posts in ONE code block, separated by a line with only ---'].join('\n')))) throw new Error('ใส่ข้อความในช่องพิมพ์ meta.ai ไม่ได้');
-    await pause(600);
-    await submit(findInput() || input);
-    if (+st.newChat) { chatCount.n = Math.max(chatCount.n || 0, +st.newChat); saveChat(); } // แชตนี้มีข้อความสินค้าอื่นแล้ว → สินค้าถัดไปเปิดแชตใหม่ก่อน (กัน meta.ai เอาสินค้าในข้อความนี้ไปปนในคลิป)
-    let prev = '';
-    for (const end = Date.now() + 90000; Date.now() < end;) { // รอจนพิมพ์เสร็จ (ข้อความไม่เปลี่ยน 2 รอบติด)
-      await pause(1500);
-      const r = readPitches(head), sig = JSON.stringify(r);
-      if (r.length && sig === prev && !isBusy()) return r;
-      prev = sig;
-    }
-    return readPitches(head);
-  }
-  async function gWritePitches(post) {
-    if (gWrite.on) return;
-    const viaMeta = !gemini.key;
-    if (!run.on) run.stop = false; // ปุ่มหยุดของคิวรอบก่อนค้างไว้ → ตัวรอ (nap) จะหยุดทันที
-    Object.assign(gWrite, { on: true, post: post.post, meta: viaMeta && !run.on });
-    renderGroups(); renderRun();
-    try {
-      const p = products.find((y) => y.id === post.pid);
-      const info = { name: post.name, caption: post.caption || (p && p.caption) || '', desc: post.desc || (p ? cleanDesc(p.desc).slice(0, 300) : '') };
-      const rules = gPitchRules(info, post.pitches || []);
-      const got = viaMeta ? await gPitchMeta(info.name, rules) : await gPitchGemini(rules);
-      if (!got.length) throw new Error(viaMeta ? 'meta.ai ไม่ได้ตอบเป็นกล่องข้อความ' : 'Gemini ไม่ได้ส่งข้อความกลับมา');
-      post.pitches = [...(post.pitches || []), ...got].slice(0, 20);
-      gPitchErr.delete(post.post);
-      saveFb();
-      (run.on ? log : msg)(`✍ เขียนข้อความขาย “${post.name.slice(0, 30)}” ${got.length} แบบแล้ว (ไว้แชร์ลงกลุ่ม)`, 'ok');
-    } catch (e) {
-      if (e instanceof Stopped && run.on) throw e;
-      gPitchErr.set(post.post, String(e.message || e).slice(0, 120));
-    } finally {
-      Object.assign(gWrite, { on: false, post: '', meta: false });
-      renderGroups(); renderRun();
-    }
-  }
-  function gKick() { // แท็บ 👥 เปิดอยู่ → เขียนข้อความขายให้โพสต์ในแผนวันนี้ที่ยังไม่มี ทีละโพสต์
-    if (gWrite.on || !gCanWrite() || panel.hidden || $('tab-groups').hidden) return;
-    const post = gNeedPitch()[0];
-    if (post) gWritePitches(post).then(gKick, () => {});
-  }
-  async function gPitchBetween() { // รันคิว: พักระหว่างสินค้า → เขียนข้อความขายให้ 1 โพสต์ (ไม่ถ่วงคิว · meta.ai ว่างแน่นอน)
-    const post = !gWrite.on && gNeedPitch()[0];
-    if (!post) return;
-    log(`✍ ให้${gemini.key ? ' Gemini' : ' meta.ai'} เขียนข้อความขาย “${post.name.slice(0, 30)}” ไว้แชร์ลงกลุ่ม`);
-    await gWritePitches(post);
-  }
-  function gOther(g, post) { // ✍ ข้อความอื่น: ตัวถัดไปที่ยังไม่เคยใช้ · ดูครบรอบแล้ว = เขียนเพิ่มอีก 5 แบบ
-    const a = post.pitches || [], cur = gPitchIdx(g, post), used = gUsedPitch(post);
-    const order = a.map((_, k) => (cur + 1 + k) % a.length).filter((k) => k !== cur);
-    const k = order.find((x) => !used.has(x));
-    if ((k == null || k <= cur) && gCanWrite() && !gWrite.on && a.length < 20) { gPick.set(g.id, { post: post.post, i: a.length }); gWritePitches(post); return; }
-    gPick.set(g.id, { post: post.post, i: k != null ? k : order.length ? order[0] : cur });
-    renderGroups();
-  }
-  function renderGroups() {
-    const groups = fb.groups || [], plan = gPlan();
-    const ready = plan.filter((x) => !x.doneToday && x.post).length;
-    $('tabGroups').textContent = `👥 กลุ่ม${ready ? ` (${ready})` : ''}`;
-    $('gState').textContent = groups.length ? `${plan.length}/${groups.length} กลุ่ม · ${(fb.gPosts || []).length} โพสต์` : 'ยังไม่มีกลุ่ม';
-    $('gKeySum').textContent = gemini.key ? 'Gemini ✓' : 'meta.ai เขียนในแชต (กดเพื่อใส่ Gemini key)';
-    $('gTodaySub').textContent = groups.length ? `แชร์วันนี้ ${gToday().length}` : '';
-    const nPosts = (fb.gPosts || []).length;
-    $('gWipe').hidden = !nPosts;
-    $('gWipe').className = gWipeArm ? 'pill danger' : 'pill';
-    $('gWipe').textContent = gWipeArm ? `กดอีกครั้งเพื่อลบ ${nPosts} โพสต์` : `🗑 ลบทั้งหมด (${nPosts})`;
-    $('gWipe').title = 'ลบโพสต์ที่รอแชร์ทั้งหมด + ประวัติการแชร์ (เริ่มใหม่) — กลุ่มที่ตั้งไว้ยังอยู่ · โพสต์บนเพจไม่ถูกลบ';
-    if (!groups.length) $('gSetup').open = true;
-    // กลุ่ม: กดชื่อ = ใช้/พัก · 🔗 เปิดกลุ่ม · 🗑 ลบ · เพจที่แชร์ลงกลุ่มนี้ (ไม่เลือก = ทุกเพจ)
-    const pages = fb.pages.filter((x) => x.on || groups.some((g) => (g.pages || []).includes(x.id)));
-    $('gGroups').replaceChildren(...groups.map((g) => {
-      const box = el('div', g.on !== false ? 'grp' : 'grp off'), top = el('div', 'gtop'), nm = el('div', 'chips');
-      const b = el('button', g.on !== false ? 'on' : '', g.name);
-      b.title = g.on !== false ? 'กดเพื่อพักกลุ่มนี้ (ไม่ขึ้นในรายการวันนี้)' : 'กดเพื่อใช้กลุ่มนี้';
-      b.onclick = () => { g.on = g.on === false; saveFb(); renderGroups(); };
-      nm.append(b);
-      top.append(nm);
-      if (g.url) { const o = el('button', 'icon', '🔗'); o.title = `เปิดหน้ากลุ่ม (ดูกฎกลุ่มก่อนแชร์) — ${g.url}`; o.onclick = () => window.open(g.url, '_blank'); top.append(o); }
-      const del = el('button', 'icon', '🗑');
-      del.title = 'ลบกลุ่มนี้ออกจากรายการ';
-      del.onclick = () => { fb.groups = fb.groups.filter((x) => x !== g); saveFb(); renderGroups(); };
-      top.append(del);
-      const pc = el('div', 'chips small gp');
-      pc.title = 'แชร์โพสต์จากเพจไหนลงกลุ่มนี้ — เลือกเพจที่แนวตรงกับกลุ่ม';
-      const all = el('button', (g.pages || []).length ? '' : 'on', 'ทุกเพจ');
-      all.onclick = () => { g.pages = []; saveFb(); renderGroups(); };
-      pc.append(all, ...pages.map((pg) => {
-        const x = el('button', (g.pages || []).includes(pg.id) ? 'on' : '', pg.name);
-        x.onclick = () => { const a = g.pages || []; g.pages = a.includes(pg.id) ? a.filter((y) => y !== pg.id) : [...a, pg.id]; saveFb(); renderGroups(); };
-        return x;
-      }));
-      box.append(top, pc);
-      return box;
-    }));
-    // วันนี้: แชร์ได้ขึ้นก่อน → แชร์แล้ววันนี้ → ไม่มีโพสต์ให้แชร์
-    const rank = (x) => (x.doneToday ? 1 : x.post ? 0 : 2);
-    const rowOf = (x) => {
-      const r = el('div', 'card qrow'), mid = el('div', 'mid'), meta = el('div', 'meta'), btns = el('span', 'gbtns');
-      mid.append(el('div', 'nm', x.g.name), meta);
-      if (x.post) { const d = el('button', 'icon', '🗑'); d.title = 'เอาโพสต์นี้ออกจากรายการแชร์ (ไม่แชร์ตัวนี้แล้ว · โพสต์บนเพจไม่ถูกลบ)'; d.onclick = () => gRemovePost(x.post); btns.append(d); }
-      const p = x.post && products.find((y) => y.id === x.post.pid);
-      if (x.doneToday) {
-        meta.append(el('span', 'good', `✓ วันนี้แชร์แล้ว${x.post ? `: “${x.post.name}”` : ''}`));
-        const u = el('button', 'pill', '↶ ยังไม่ได้แชร์');
-        u.title = 'กด 📤 แล้วแต่ไม่ได้โพสต์จริง → ไม่นับ (แชร์ใหม่ได้)';
-        u.onclick = () => gUndo(x.g);
-        btns.append(u);
-      } else if (x.post) {
-        meta.append(el('span', '', `← “${x.post.name}”`)); // ชื่อเพจอยู่หัวช่องแล้ว
-        const pi = gPitchIdx(x.g, x.post), busy = gWrite.post === x.post.post, err = gPitchErr.get(x.post.post);
-        const pt = el('div', pi >= 0 && !busy ? 'gpitch' : 'gpitch wait', busy ? '✍ กำลังเขียนข้อความขาย...' : pi >= 0 ? x.post.pitches[pi]
-          : err ? `⚠ เขียนข้อความขายไม่ได้: ${err} — แชร์ได้ด้วยข้อความสั้น` : gCanWrite() ? '✍ รอเขียนข้อความขาย...' : '✍ จะเขียนข้อความขายตอนพักระหว่างสินค้า (คิวกำลังรัน) — แชร์ตอนนี้ได้ด้วยข้อความสั้น');
-        if (pi >= 0) pt.title = x.post.pitches[pi];
-        meta.after(pt);
-        if (err && gCanWrite()) { const w = el('button', 'pill', '↻ ลองใหม่'); w.title = 'เขียนข้อความขายของโพสต์นี้อีกครั้ง'; w.onclick = () => { gPitchErr.delete(x.post.post); gWritePitches(x.post); }; btns.append(w); }
-        else if (pi >= 0 && !busy && ((x.post.pitches || []).length > 1 || gCanWrite())) { const w = el('button', 'pill', '✍ ข้อความอื่น'); w.title = 'เปลี่ยนข้อความขาย (ดูครบแล้วกดอีก = เขียนเพิ่มอีก 5 แบบ)'; w.onclick = () => gOther(x.g, x.post); btns.append(w); }
-        if (x.left > 1) { const o = el('button', 'pill', '↷ สินค้าอื่น'); o.title = `เปลี่ยนเป็นโพสต์อื่น (เหลือ ${x.left} โพสต์ที่ยังไม่เคยแชร์ลงกลุ่มนี้)`; o.onclick = () => { if (!gSkip.has(x.g.id)) gSkip.set(x.g.id, new Set()); gSkip.get(x.g.id).add(x.post.post); renderGroups(); }; btns.append(o); }
-        const b = el('button', 'btn dark', '📤 แชร์');
-        b.title = `คัดลอก${pi >= 0 ? 'ข้อความขาย' : 'ข้อความสั้น'} + เปิดหน้าต่างแชร์ของ Facebook (โพสต์รูปจากเพจ “${x.post.page}”) → เลือก แชร์ในกลุ่ม → “${x.g.name}” → วาง → โพสต์`;
-        b.onclick = () => gShare(x.g, x.post);
-        const o = el('button', 'pill', '↗');
-        o.title = 'แบบเดิม: เปิดโพสต์บนเพจ แล้วกดปุ่ม “แชร์” ใต้โพสต์เอง (ถ้าแชร์จากหน้าต่างแล้วในกลุ่มขึ้นแค่ลิงก์ ใช้ปุ่มนี้ — ได้โพสต์รูปเต็ม)';
-        o.onclick = () => gShare(x.g, x.post, 'post');
-        btns.append(o, b);
-      } else meta.append(el('span', 'bad', (fb.gPosts || []).some((y) => !(x.g.pages || []).length || x.g.pages.includes(y.pageId)) ? 'แชร์โพสต์ของเพจนี้ลงกลุ่มนี้ครบแล้ว — รอโพสต์ใหม่' : 'เพจนี้ยังไม่มีโพสต์รูป — โพสต์แบบรูป 4 ภาพที่แท็บ 📘 ก่อน'));
-      r.append(p ? coverOf(p) : el('div', 'cover', '👥'), mid, btns);
-      return r;
-    };
-    // แยกช่องตามเพจของโพสต์ที่จะแชร์ (ลำดับตามรายชื่อเพจ) · ไม่มีโพสต์ให้แชร์ = ช่องท้าย
-    const order = fb.pages.map((pg) => pg.id), byPage = new Map(), names = new Map(); // แยกด้วยรหัสเพจ — เปลี่ยนชื่อเพจแล้วยังเป็นช่องเดียว (โชว์ชื่อล่าสุด)
-    const onePage = (g) => ((g.pages || []).length === 1 ? g.pages[0] : ''); // กลุ่มผูกเพจเดียว = อยู่ช่องเพจนั้นแม้ยังไม่มีโพสต์ (เพจใหม่)
-    for (const x of [...plan].sort((a, b) => rank(a) - rank(b))) { const k = x.post ? x.post.pageId || x.post.page : onePage(x.g); if (k && x.post && !names.has(k)) names.set(k, x.post.page); if (!byPage.has(k)) byPage.set(k, []); byPage.get(k).push(x); }
-    const keys = [...byPage.keys()].sort((a, b) => (a === '') - (b === '') || ((order.indexOf(a) + 1 || 999) - (order.indexOf(b) + 1 || 999)));
-    const rows = keys.map((k) => {
-      const box = el('div', 'gpagebox'), list = byPage.get(k), ready = list.filter((x) => x.post && !x.doneToday).length, done = list.filter((x) => x.doneToday).length;
-      const state = ready ? ` · รอแชร์ ${ready}` : done === list.length ? ' · แชร์ครบวันนี้แล้ว ✓' : ' · ยังไม่มีโพสต์ใหม่ให้แชร์';
-      const pgName = (fb.pages.find((pg) => pg.id === k) || {}).name || names.get(k) || k;
-      box.append(el('div', 'gpage', k ? `📘 ${pgName} · ${list.length} กลุ่ม${state}` : `ยังไม่มีโพสต์ให้แชร์ · ${list.length} กลุ่ม`), ...list.map(rowOf));
-      return box;
-    });
-    $('gToday').replaceChildren(...(rows.length ? rows : [el('div', 'empty', groups.length ? 'พักทุกกลุ่มอยู่ — กดชื่อกลุ่มด้านบนเพื่อใช้' : 'ยังไม่มีกลุ่ม — เพิ่มกลุ่มที่เข้าร่วมไว้ด้านบนก่อน (ชื่อ + ลิงก์)')]));
-    gKick();
-  }
-
   function renderRun() {
     const left = todo().length;
     // ความคืบหน้ารอบนี้: เสร็จ/พลาดแล้วกี่ตัว จากที่อยู่ในรอบ (ตัวที่ลบออกไม่นับ)
@@ -3616,9 +3512,10 @@
     $('prog').hidden = !run.on || !ids.length;
     $('prog').firstElementChild.style.width = `${ids.length ? Math.round((fin / ids.length) * 100) : 0}%`;
     $('fab').textContent = `🎬 Shopee Video${left ? ` · ${left}` : ''}`;
-    const go = el('button', 'run', run.on ? `⏳ กำลังรันคิว ${fin}/${ids.length}` : `▶ รันคิวอัตโนมัติ (${left} สินค้า)`);
-    go.disabled = run.on || !left || writer.on || gWrite.meta || fill.on;
-    go.title = gWrite.meta ? 'meta.ai กำลังเขียนข้อความขาย (แท็บ 👥) — รอสักครู่' : 'ใส่ prompt + รูป → กดส่ง → รอคลิป → ดาวน์โหลด ทีละสินค้า จนหมดคิว';
+    const metaWriting = !run.on && fill.on && !gemini.key; // meta.ai กำลังเขียนโพสต์คั่นในแชต (แท็บ 📘)
+    const go = el('button', 'run', metaWriting ? '⏳ รอ meta.ai เขียนข้อความให้เสร็จก่อน...' : run.on ? `⏳ กำลังรันคิว ${fin}/${ids.length}` : `▶ รันคิวอัตโนมัติ (${left} สินค้า)`);
+    go.disabled = run.on || !left || writer.on || metaWriting; // Gemini เขียนเบื้องหลัง = ไม่ต้องรอ
+    go.title = metaWriting ? 'meta.ai กำลังเขียนโพสต์คั่น (แท็บ 📘) — รอสักครู่' : 'ใส่ prompt + รูป → กดส่ง → รอคลิป → ดาวน์โหลด ทีละสินค้า จนหมดคิว';
     go.onclick = () => runQueue();
     const items = [go];
     if (run.resume) {
@@ -3661,16 +3558,18 @@
     }));
   }
 
-  function renderAll() { renderPresets(); renderProducts(); renderChips(); renderPeople(); renderSearch(); renderHist(); renderFb(); renderFill(); renderGroups(); renderSv(); renderRun(); }
+  function renderAll() { renderPresets(); renderProducts(); renderChips(); renderPeople(); renderSearch(); renderHist(); renderFb(); renderFill(); renderSv(); renderRun(); }
 
   (async () => {
-    const r = await store.get(['mahHistory', 'mah3', 'mah3Face', 'mah3Products', 'mah6Presenters', 'mahGemini', 'mahStats', 'mahRun', 'mahSeenClips', 'mahCleanCount', 'mahHookIdx', 'mahBadButtons', 'mahShopeeApi', 'mahFb']);
+    const r = await store.get(['mahHistory', 'mah3', 'mah3Face', 'mah3Products', 'mah6Presenters', 'mahGemini', 'mahStats', 'mahRun', 'mahSeenClips', 'mahCleanCount', 'mahHookIdx', 'mahBadButtons', 'mahBadV', 'mahShopeeApi', 'mahFb']);
     fb = { ...fb, ...(r.mahFb || {}) };
+    if (fb.groups || fb.gPosts || fb.gLog) { delete fb.groups; delete fb.gPosts; delete fb.gLog; saveFb(); } // ข้อมูลแท็บ 👥 กลุ่ม (เอาออกแล้ว — แชร์จากแอปมือถือเอง)
     $('fbToken').value = fb.userToken || '';
     spCreds = { appId: '', secret: '', ...(r.mahShopeeApi || {}) };
     $('spApp').value = spCreds.appId;
     $('spSecret').value = spCreds.secret;
-    badButtons = new Set(r.mahBadButtons || []);
+    badButtons = new Set(r.mahBadV === 2 ? r.mahBadButtons || [] : []); // ล้างครั้งเดียว: ความจำเก่าอาจมีปุ่มส่งจริงอยู่
+    if (r.mahBadV !== 2) store.set({ mahBadButtons: [], mahBadV: 2 });
     hookIdx = +r.mahHookIdx || 0;
     seenClips = new Set(r.mahSeenClips || []);
     if (r.mahStats && r.mahStats.day === today()) stats = { ...stats, ...r.mahStats };
@@ -3750,7 +3649,7 @@
     gemini.model = $('gModel').value.trim();
     store.set({ mahGemini: gemini });
   };
-  $('gKey').oninput = () => { saveGemini(); modelCache = null; gPitchErr.clear(); renderGroups(); }; // ใส่ key แล้วเริ่มเขียนข้อความขายเลย
+  $('gKey').oninput = () => { saveGemini(); modelCache = null; renderFill(); };
   $('gTestBtn').onclick = async () => {
     const b = $('gTestBtn');
     b.disabled = true; b.textContent = 'กำลังทดสอบ...';
@@ -3778,6 +3677,29 @@
   $('aiLabel').onchange = () => { st.aiLabel = $('aiLabel').checked; save(); };
   $('fbAll').onclick = () => fbPostAll();
   $('fillMake').onclick = () => fillMakeAll();
+  // ชื่อไฟล์คลิป = ชื่อสินค้า (safeName) · อาจมี -A / -B (2 แบบ) · " (1)" (ชื่อซ้ำ) → ตัดออกแล้วเทียบแบบไม่สนช่องว่าง/เครื่องหมาย
+  const clipKey = (s) => String(s || '').replace(/\.(mp4|webm|mov|m4v)$/i, '').replace(/\s*\(\d+\)$/, '').replace(/-[AB]$/i, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  $('fbFiles').onclick = () => $('fbFileIn').click();
+  $('fbFileIn').onchange = async () => {
+    const files = [...$('fbFileIn').files];
+    $('fbFileIn').value = '';
+    if (!files.length) return;
+    const done = products.filter((p) => p.done), keyOf = new Map(done.map((p) => [p.id, clipKey(safeName(p.name))]));
+    let ok = 0;
+    const miss = [];
+    msg(`📁 กำลังจับคู่ไฟล์คลิป ${files.length} ไฟล์...`, '');
+    for (const file of files) {
+      const k = clipKey(file.name);
+      const p = okVideo(file) && k && (done.find((x) => keyOf.get(x.id) === k) || done.find((x) => { const kk = keyOf.get(x.id); return kk.length >= 12 && (k.startsWith(kk.slice(0, 40)) || kk.startsWith(k.slice(0, 40))); }));
+      if (!p) { miss.push(file.name); continue; }
+      mediaFor.set(p.id, { ...(mediaFor.get(p.id) || {}), video: { src: '', blob: file } });
+      await mediaPut(`clip:${p.id}`, file);
+      if (reelPick.has(p.id)) reelPick.delete(p.id);
+      ok++;
+    }
+    renderPostLists();
+    msg(`📁 ใส่ไฟล์คลิปให้สินค้า ${ok} ตัวแล้ว${miss.length ? ` · ไม่ตรงกับสินค้าในรายการ ${miss.length} ไฟล์ (${miss.slice(0, 3).join(', ')}${miss.length > 3 ? ' …' : ''})` : ''}${ok ? ' — กด 📘 โพสต์ทั้งหมด / 🎬 ลง Reel ได้เลย' : ''}`, ok ? 'ok' : 'err');
+  };
   $('fbWipe').onclick = () => {
     clearTimeout(fbWipeTimer);
     if (!fbWipeArm) { fbWipeArm = true; fbWipeTimer = setTimeout(() => { fbWipeArm = false; renderPostLists(); }, 5000); renderPostLists(); return; }
@@ -3792,31 +3714,8 @@
     fbClearArm = false;
     const gone = fbPostedDone();
     removeProducts(gone);
-    msg(`เคลียร์ตัวที่โพสต์ลงเพจแล้ว ${gone.length} ตัว ✓ (คลิป/.txt ในเครื่องยังอยู่ · แชร์ลงกลุ่มยังได้)`, 'ok');
+    msg(`เคลียร์ตัวที่โพสต์ลงเพจแล้ว ${gone.length} ตัว ✓ (คลิป/.txt ในเครื่องยังอยู่)`, 'ok');
   };
-  $('gWipe').onclick = () => {
-    clearTimeout(gWipeTimer);
-    if (!gWipeArm) { gWipeArm = true; gWipeTimer = setTimeout(() => { gWipeArm = false; renderGroups(); }, 5000); renderGroups(); return; }
-    gWipeArm = false;
-    const n = (fb.gPosts || []).length;
-    fb.gPosts = []; fb.gLog = [];
-    gSkip.clear(); gPick.clear(); gPitchErr.clear();
-    saveFb(); renderGroups();
-    msg(`ลบโพสต์ที่รอแชร์ทั้งหมด ${n} โพสต์แล้ว ✓ (กลุ่มที่ตั้งไว้ยังอยู่)`, 'ok');
-  };
-  $('gAdd').onclick = () => {
-    const name = $('gName').value.trim();
-    let url = $('gUrl').value.trim();
-    if (!name) { msg('ใส่ชื่อกลุ่มก่อน (ตรงกับชื่อบน Facebook)', 'err'); return; }
-    if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
-    if (url && !/^https?:\/\/([a-z]+\.)?facebook\.com\/groups\/[^/?#\s]+/i.test(url)) { msg('ลิงก์กลุ่มต้องเป็น facebook.com/groups/… (หรือเว้นว่างไว้)', 'err'); return; }
-    if ((fb.groups || []).some((g) => g.name === name)) { msg('มีกลุ่มชื่อนี้อยู่แล้ว', 'err'); return; }
-    fb.groups = [...(fb.groups || []), { id: uid(), name, url, pages: [], on: true }];
-    $('gName').value = ''; $('gUrl').value = '';
-    saveFb(); renderGroups();
-    msg(`เพิ่มกลุ่ม “${name}” แล้ว ✓ เลือกเพจที่จะแชร์ลงกลุ่มนี้ได้ (ไม่เลือก = ทุกเพจ)`, 'ok');
-  };
-  for (const id of ['gName', 'gUrl']) $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') $('gAdd').click(); });
   $('svOpen').onclick = () => { if (svOn()) window.open(sv.url, 'shopeeVideoPoster'); };
   $('svRefresh').onclick = () => { sv = null; svSig = ''; renderSv(); svCheck(); };
   svCheck(); // ตัวเลขคลิปรอโพสต์บนแท็บ
@@ -3923,7 +3822,6 @@
       }
       if (b.dataset.tab === 'queue') renderProducts(); // ช่องบทพูดปรับความสูงได้เมื่อมองเห็นแล้ว
       if (b.dataset.tab === 'sv') svCheck();
-      if (b.dataset.tab === 'groups') renderGroups();
     };
   });
   $('tabQueue').classList.add('on');
