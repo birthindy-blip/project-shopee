@@ -199,6 +199,12 @@ def fit_caption(caption, tags, limit=150):
     return f'{short}\n\n{tags}'.strip()
 
 
+def caption_matches(actual, expected):
+    # Shopee/Android may expose line breaks as spaces. Keep all other characters exact.
+    flatten = lambda value: re.sub(r'\r\n?|\n|\t', ' ', value)
+    return flatten(actual) == flatten(expected)
+
+
 def scan_clips(folder):
     folder = Path(folder)
     if not folder.is_dir():
@@ -782,10 +788,18 @@ def perform(dev, step, target, size, ctx):
         dev.press('enter')
     if step.get('id') == 'caption':
         _, nodes = screen(dev)
-        if not any(n.is_input and n.text == text for n in nodes):
+        if not any(n.is_input and caption_matches(n.text, text) for n in nodes):
             raise StepFailed('คำบรรยายในมือถือไม่ตรงกับคลิป จึงหยุดก่อนเผยแพร่')
         if 'mInputShown=true' in dev.shell('dumpsys input_method'):
             dev.press('back')
+            time.sleep(.4)
+        size, nodes = screen(dev)
+        if any(n.rid.endswith(':id/btn_top_back') and n.text == 'เพิ่มแคปชั่น' for n in nodes):
+            done = find_target(nodes, [{'idRegex': r':id/tv_right$', 'text': 'ตกลง'}], size)
+            if not done and not any(n.rid.endswith(':id/btn_post') and n.visible(size) for n in nodes):
+                raise StepFailed('ไม่พบปุ่มบันทึกแคปชัน จึงหยุดก่อนเผยแพร่')
+            if done:
+                perform(dev, {'do': 'tap'}, done, size, ctx)
 
 
 def run_step(dev, step, ctx, flow, settings, ask=input, teach_on=True):
@@ -808,8 +822,22 @@ def run_step(dev, step, ctx, flow, settings, ask=input, teach_on=True):
             continue
         target = find_target(nodes, step.get('find'), size)
         if target:
+            fresh_toast = False
+            if step.get('id') == 'import_product':
+                try:
+                    dev.d.clear_toast()
+                    fresh_toast = True
+                except Exception:
+                    pass
             perform(dev, step, target, size, ctx)
             time.sleep(step.get('after', 1.8))
+            if fresh_toast:
+                try:
+                    message = dev.d.last_toast or ''
+                except Exception:
+                    message = ''
+                if isinstance(message, str) and 'นำเข้าไม่สำเร็จ' in message:
+                    raise StepFailed('Shopee แจ้ง: ' + message)
             return 'ok'
         if time.time() > deadline:
             break

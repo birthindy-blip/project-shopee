@@ -15,7 +15,7 @@
     "shop_id": "121205602",
     "product_url": "https://shopee.co.th/product/121205602/1867293688",
     "error": "",
-    "checked_at": "2026-10-08T16:30:59"
+    "checked_at": "2026-10-11T21:33:21"
   },
   "https://s.shopee.co.th/8fSxwDtETt": {
     "source_url": "https://s.shopee.co.th/8fSxwDtETt",
@@ -24,6 +24,15 @@
     "shop_id": "60948645",
     "product_url": "https://shopee.co.th/product/60948645/41410595765",
     "error": "",
-    "checked_at": "2026-10-08T15:46:43"
+    "checked_at": "2026-10-11T21:41:07"
+  },
+  "https://s.shopee.co.th/70KjxtPjz5": {
+    "source_url": "https://s.shopee.co.th/70KjxtPjz5",
+    "status": "resolved",
+    "item_id": "26862904176",
+    "shop_id": "85322077",
+    "product_url": "https://shopee.co.th/product/85322077/26862904176",
+    "error": "",
+    "checked_at": "2026-10-11T21:24:40"
   }
 }

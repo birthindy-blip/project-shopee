@@ -165,6 +165,50 @@ class ProductTests(unittest.TestCase):
         self.assertFalse(any(c.args[1].get('do') == 'post' for c in run.call_args_list))
 
 
+class CaptionTests(unittest.TestCase):
+    def test_caption_done_button_works_with_original_and_updated_app_namespace(self):
+        for namespace in (sp.PKG, sp.PKG + '.dfpluginshopee16'):
+            with self.subTest(namespace=namespace):
+                nodes = screen_nodes(node('แคปชัน  #สินค้า', cls='android.widget.EditText',
+                                          bounds='[360,260][1080,534]') +
+                                     node('เพิ่มแคปชั่น', bounds='[140,89][384,213]') +
+                                     node('ตกลง', bounds='[884,89][1080,213]'))
+                for n, suffix in zip(nodes, ('et_caption', 'btn_top_back', 'tv_right')):
+                    n.rid = namespace + ':id/' + suffix
+                dev = Mock()
+                dev.shell.return_value = ''
+                with patch.object(sp, 'screen', return_value=((1080, 2340), nodes)), \
+                        patch.object(sp.time, 'sleep'):
+                    sp.perform(dev, {'id': 'caption', 'do': 'type', 'value': '{caption_full}'},
+                               ('node', nodes[0]), (1080, 2340),
+                               {'caption_full': 'แคปชัน\n\n#สินค้า'})
+                dev.type_text.assert_called_once_with('แคปชัน\n\n#สินค้า')
+                self.assertEqual(dev.click.call_count, 2)
+                self.assertEqual(dev.click.call_args.args, (982, 151))
+
+    def test_caption_editor_without_done_stops_before_another_click(self):
+        nodes = screen_nodes(node('แคปชัน', cls='android.widget.EditText') + node('เพิ่มแคปชั่น'))
+        nodes[1].rid = sp.PKG + '.dfpluginshopee16:id/btn_top_back'
+        dev = Mock()
+        dev.shell.return_value = ''
+        with patch.object(sp, 'screen', return_value=((1080, 2340), nodes)), \
+                patch.object(sp.time, 'sleep'):
+            with self.assertRaises(sp.StepFailed):
+                sp.perform(dev, {'id': 'caption', 'do': 'type', 'value': '{caption_full}'},
+                           ('node', nodes[0]), (1080, 2340), {'caption_full': 'แคปชัน'})
+        self.assertEqual(dev.click.call_count, 1)
+
+    def test_android_line_break_readback_keeps_all_caption_characters(self):
+        self.assertTrue(sp.caption_matches('ผิวชุ่มชื้น  #CeraVe #เซราวี',
+                                           'ผิวชุ่มชื้น\n\n#CeraVe #เซราวี'))
+
+    def test_dropped_hashtag_or_changed_text_does_not_pass(self):
+        expected = 'ผิวชุ่มชื้น\n\n#CeraVe #เซราวี'
+        self.assertFalse(sp.caption_matches('ผิวชุ่มชื้น  #CeraVe', expected))
+        self.assertFalse(sp.caption_matches('ผิวแห้ง  #CeraVe #เซราวี', expected))
+        self.assertFalse(sp.caption_matches('ผิวชุ่มชื้น  #cerave #เซราวี', expected))
+
+
 class PhoneTests(unittest.TestCase):
     def inventory(self, devices):
         return {'devices': devices, 'usb_devices': [], 'dependencies': True, 'error': ''}
