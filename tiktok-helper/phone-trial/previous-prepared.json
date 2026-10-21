@@ -1,0 +1,21 @@
+{
+  "clip_name": "(พร้อมส่ง) สกัวดิสยึดกับโต๊ะ เพ็กบอร์ด บอร์ดรูพลาสติก ABS Pe",
+  "clip_key": "(พร้อมส่ง) สกัวดิสยึดกับโต๊ะ เพ็กบอร์ด บอร์ดรูพลาสติก ABS Pe.mp4|21935338",
+  "remote": "/sdcard/DCIM/ShopeeVideoTrial/SV9ea598cab7/sv_20261014_184000_112.mp4",
+  "serial": "9f629a607d94",
+  "basket": {
+    "status": "matched",
+    "message": "ตะกร้ามีสินค้า 1 รายการที่นำเข้าจากลิงก์ของคลิป",
+    "expected": {
+      "source_url": "https://s.shopee.co.th/1qciDcCcCa",
+      "status": "resolved",
+      "item_id": "43528306303",
+      "shop_id": "1370621972",
+      "product_url": "https://shopee.co.th/product/1370621972/43528306303",
+      "error": "",
+      "checked_at": "2026-10-14T20:13:23"
+    },
+    "actual": null,
+    "method": "single_link_import"
+  }
+}

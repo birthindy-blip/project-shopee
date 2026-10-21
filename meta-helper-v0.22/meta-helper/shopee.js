@@ -316,6 +316,19 @@
       toast(`${r.existed ? 'อัปเดต' : 'เพิ่มเข้าคิว'}: ${item.name.slice(0, 40)} · รูป ${r.product.images.length}`);
     };
     document.body.appendChild(b);
+    if (document.getElementById('mah-shopee-shop')) return;
+    const s = b.cloneNode(false); // ปุ่มที่ 2 หน้าตาเดียวกัน อยู่เหนือปุ่มส่งเข้าคิว
+    s.id = 'mah-shopee-shop';
+    s.textContent = '🏪 ดึงทั้งร้านนี้ไปหาสินค้า';
+    s.style.bottom = '150px';
+    s.onclick = async () => {
+      if (!alive()) { toast('extension ถูกอัปเดต - กด F5 รีเฟรชหน้านี้ก่อน แล้วกดใหม่', false); return; }
+      const m = location.href.match(/-i\.(\d+)\.\d+|\/product\/(\d+)\/\d+/); // อ่านตอนกด (เปลี่ยนสินค้าแบบไม่โหลดหน้าใหม่ ปุ่มเดิมยังอยู่)
+      if (!m) { toast('ไม่ใช่หน้าสินค้า', false); return; }
+      await store.set({ mahShopReq: { id: m[1] || m[2], url: location.href.split('?')[0], at: Date.now() } });
+      toast('ส่งร้านไปที่แผงบน meta.ai แล้ว — เปิดแท็บ meta.ai จะเห็นสินค้าทั้งร้านในแท็บ 🔎');
+    };
+    document.body.appendChild(s);
   }
 
   // ---------- ค้นหาให้แผงบน meta.ai (แท็บ Affiliate เบื้องหลัง · ไม่ต้องใช้ Open API) ----------
@@ -650,10 +663,55 @@
     return { ok: false, error: 'Shopee ไม่ส่งลิงก์กลับมา' };
   }
 
+  // ---------- หน้าร้าน (shopee.co.th/shop/<id>/search) — แผงดึงสินค้าทั้งร้านโดยไม่ใช้ Open API ----------
+  const ITEM_RE = /-i\.(\d+)\.(\d+)|\/product\/(\d+)\/(\d+)/;
+  function shopCards(shopId) { // การ์ดสินค้าของร้านนี้ (ไม่เอาสินค้าแนะนำของร้านอื่น) · ซ้ำ = เอาอันแรก
+    const seen = new Map();
+    for (const a of document.querySelectorAll('a[href]')) {
+      const m = (a.getAttribute('href') || '').match(ITEM_RE);
+      if (!m || (m[1] || m[3]) !== String(shopId)) continue;
+      const item = m[2] || m[4];
+      if (!seen.has(item)) seen.set(item, a);
+    }
+    return seen;
+  }
+  const shopTitle = () => ((document.querySelector('meta[property="og:title"]') || {}).content || document.title || '').replace(/\s*[|,]\s*(ร้านค้าออนไลน์|Shopee Thailand|ร้านค้า).*$/i, '').trim();
+  const mainShop = () => { // หน้าร้านจากลิงก์ชื่อร้าน: รหัสร้านที่ลิงก์สินค้าบนหน้าใช้มากสุด
+    const n = new Map();
+    for (const a of document.querySelectorAll('a[href]')) { const m = (a.getAttribute('href') || '').match(ITEM_RE); if (m) { const k = m[1] || m[3]; n.set(k, (n.get(k) || 0) + 1); } }
+    const [top] = [...n.entries()].sort((x, y) => y[1] - x[1]);
+    return top && top[1] >= 3 ? top[0] : ''; // ยังโหลดไม่ครบ (มีลิงก์ไม่กี่อัน) = รอก่อน ไม่เดาร้านผิด
+  };
+  async function shopRead({ shopId, later }) {
+    const blocked = () => /\/verify\/|\/buyer\/login|captcha/i.test(location.pathname + location.search);
+    let cards = new Map();
+    for (let t = 0; t < 40; t++) {
+      if (blocked()) return { ok: false, verify: true, error: 'Shopee ขอให้ยืนยันตัวตน/ล็อกอินก่อน — ทำให้เสร็จในแท็บร้านที่เปิดให้ แล้วกด 🏪 อีกครั้ง' };
+      const sid = shopId || mainShop();
+      cards = sid ? shopCards(sid) : new Map();
+      if (cards.size) { shopId = sid; break; }
+      if (later && t >= 16) return { ok: true, items: [], more: false, shopId, shopName: shopTitle() }; // หน้าถัดไปว่าง = หมดแล้ว
+      if (t >= 12 && /ไม่พบสินค้า|ยังไม่มีสินค้า|no products? found/i.test((document.body.innerText || '').slice(0, 6000))) return { ok: true, items: [], more: false, shopName: shopTitle() };
+      await sleep(500);
+    }
+    if (!cards.size) return { ok: false, error: `ไม่เจอสินค้าบนหน้าร้าน (${location.pathname})` };
+    for (let y = 0, h = document.body.scrollHeight; y < h; y += 700) { window.scrollTo(0, y); await sleep(120); } // เลื่อนลงให้การ์ด/รูปที่โหลดทีหลังขึ้นครบ
+    await sleep(500);
+    cards = shopCards(shopId);
+    window.scrollTo(0, 0);
+    const items = [...cards.entries()].map(([itemId, a]) => {
+      const c = readCard(a);
+      const sold = (((a.innerText || '').match(/ขาย(?:แล้ว|ได้)\s*([\d.,]+\s*(?:พัน|หมื่น|แสน|ล้าน|k|m)?)/i) || [])[1] || '').trim();
+      return { itemId, name: c.name, image: c.imageUrls[0] || '', price: c.price, sold, productUrl: new URL(a.getAttribute('href'), location.href).href.split('?')[0] };
+    }).filter((x) => x.name);
+    return { ok: true, items, more: cards.size >= 20, shopId, shopName: shopTitle() }; // หน้าละ ~30 ตัว · ได้น้อยกว่า 20 = หน้าสุดท้าย
+  }
+
   if (window.top === window) {
     let affChain = Promise.resolve(); // ทำทีละคำสั่ง
     try {
       chrome.runtime.onMessage.addListener((m, _s, send) => {
+        if (m && m.type === 'shopRead') { shopRead(m).then(send, (e) => send({ ok: false, error: String(e.message || e) })); return true; }
         if (!m || (m.type !== 'affSearch' && m.type !== 'affLink')) return false;
         affChain = affChain.then(() => (m.type === 'affSearch' ? affSearch(m) : affLink(m)))
           .then(send, (e) => send({ ok: false, error: String(e.message || e) }));

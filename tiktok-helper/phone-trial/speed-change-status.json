@@ -1,0 +1,14 @@
+{
+  "changed_at": "2026-10-16T16:43:44",
+  "delay_minutes": [
+    1,
+    2
+  ],
+  "daily_limit": 70,
+  "today": 67,
+  "last_confirmed_key": "ที่คว่ำจานระบายน้ําสําหรับห้องครัว ที่คว่ำจานระบายน้ําอเนกปร.mp4|4748141",
+  "same_queue": true,
+  "tests_passed": 175,
+  "state": "applied_original_queue_running",
+  "verified_at": "2026-10-16T16:44:48"
+}

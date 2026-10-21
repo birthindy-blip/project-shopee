@@ -1,0 +1,15 @@
+{
+  "collected_at": "2026-10-16T07:52:13+07:00",
+  "clip_key": "ชั้นเก็บของ ชั้นวางของในห้องน้ำ ชั้นวางรถเข็นครัว 3 4 5ชั้น.mp4|5443912",
+  "remote": "/sdcard/DCIM/ShopeeVideoTrial/SVf313386517/sv_20261016_072625_951.mp4",
+  "shopee_pid": "",
+  "android_events": [
+    "10-16 07:27:41.670  1881  1900 I am_kill : [0,20909,com.shopee.th,0,stop com.shopee.th: from process:28265]",
+    "10-16 07:27:41.721  1881  1900 I am_kill : [0,21904,com.shopee.feniks.syntax,0,stop com.shopee.th: from process:28265]",
+    "10-16 07:27:56.838  1881  1924 I am_anr  : [0,28269,com.shopee.th,953695812,Input dispatching timed out (AppWindowToken{5711799 token=Token{f2f5962 ActivityRecord{8311af3 u0 com.shopee.th/com.shopee.app.ui.home.HomeActivity_ t121}}}, Waiting because no window has focus but there is a focused application that may eventually add a window when it finishes starting up.)]",
+    "10-16 07:28:33.394  1881  1925 I am_kill : [0,28269,com.shopee.th,0,user request after error]",
+    "10-16 07:28:33.771  1881  3544 I am_proc_died: [0,28269,com.shopee.th,0,2]",
+    "10-16 07:28:33.814  1881  3544 I am_kill : [0,29384,com.shopee.th:wvvvuvww,0,isolated not needed]",
+    "10-16 07:28:34.120  1881  3544 I am_proc_died: [0,29384,com.shopee.th:wvvvuvww,0,11]"
+  ]
+}

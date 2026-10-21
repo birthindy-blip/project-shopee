@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-10-16T09:21:13+07:00",
+  "clip_key": "ชั้นวางรองเท้า 2-9ชั้น ชั้นเก็บรองเท้า รูปตัวX ซ้อนได้หลายชั.mp4|18947429",
+  "serial": "9f629a607d94",
+  "prepared_status": "posting",
+  "source_hashes_unchanged": true,
+  "pc_video_exists": true,
+  "pc_txt_exists": true,
+  "remote": "/sdcard/DCIM/ShopeeVideoTrial/SV162fd7e4ee/sv_20261016_085748_816.mp4",
+  "system_title": "ร้อนเกิน",
+  "system_message": "อุปกรณ์ของคุณร้อนเกินไป ข้อมูลมือถือ ฮอตสปอต Wi-Fi GPS และกล้อง จะถูกจำกัด",
+  "screenshot": "dumps/recover-profile-unavailable.jpg",
+  "xml": "dumps/recover-profile-unavailable.xml",
+  "tests_passed": 154
+}

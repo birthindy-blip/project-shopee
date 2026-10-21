@@ -1,0 +1,36 @@
+{
+  "clips_folder": "C:\\Users\\dark_\\Downloads\\ShopeeVideo",
+  "auto_post": true,
+  "daily_limit": 74,
+  "delay_minutes": [
+    1,
+    2
+  ],
+  "product_search": "link",
+  "delete_after_post": true,
+  "phone_folder": "/sdcard/DCIM/ShopeeVideoTrial",
+  "popups": [
+    "อนุญาต",
+    "Allow",
+    "ขณะใช้แอป",
+    "While using the app",
+    "อนุญาตทั้งหมด",
+    "Allow all",
+    "ตกลง",
+    "OK",
+    "เข้าใจแล้ว",
+    "Got it",
+    "รับทราบ"
+  ],
+  "serial": "9f629a607d94",
+  "auto_unlock_swipe": true,
+  "thermal_cooldown_minutes": 60,
+  "ui_timeout_seconds": 60,
+  "startup_wait_seconds": 2,
+  "plain_caption": true,
+  "camera_load_wait_seconds": 2,
+  "gallery_timeout_seconds": 120,
+  "gallery_load_wait_seconds": 1,
+  "reuse_app_session": true,
+  "reopen_on_identity": true
+}

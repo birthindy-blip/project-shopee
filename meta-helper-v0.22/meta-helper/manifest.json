@@ -6,7 +6,9 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "downloads"
+    "downloads",
+    "identity",
+    "identity.email"
   ],
   "content_scripts": [
     {
@@ -33,6 +35,7 @@
   "host_permissions": [
     "https://*.susercontent.com/*",
     "https://*.shopee.co.th/*",
+    "https://shp.ee/*",
     "https://*.shopeemobile.com/*",
     "https://generativelanguage.googleapis.com/*",
     "https://graph.facebook.com/*",

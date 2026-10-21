@@ -1,0 +1,47 @@
+{
+  "status": "failed_cancelled",
+  "clip_key": "GOOJODOQ หูฟังไร้สาย คลิปออน บลูทู ธ 5.3 การเชื่อมต่อที่มั่น.mp4|27666308",
+  "clip_name": "GOOJODOQ หูฟังไร้สาย คลิปออน บลูทู ธ 5.3 การเชื่อมต่อที่มั่น",
+  "serial": "9f629a607d94",
+  "remote": "/sdcard/DCIM/ShopeeVideoTrial/SVc53700188e/sv_20261015_100636_743.mp4",
+  "clips_folder": "C:\\Users\\dark_\\Downloads\\ShopeeVideo",
+  "sources": {
+    "video": "49887e35eaf9966a808baf250c2c0060524032cc099c23a4302c87802e9355bf",
+    "txt": "11b5d9cea2ad7be9e77a5f09ee52b0d27bdfc43244be5214455323d4c2225d56"
+  },
+  "context": {
+    "caption_full": "แบบคลิปออนไม่ต้องยัดหู ใส่ทั้งวันก็ไม่ล้า เราชอบมาก เสียงใสคุยชัด เชื่อมไว แตะสั่งงานได้เลย ✨\n\n#หูฟังคลิปออน #GOOJODOQ #หูฟังไร้สาย #แก็ดเจ็ตต้องมี",
+    "product": {
+      "source_url": "https://s.shopee.co.th/1LgQQtTC4P",
+      "product_url": "https://s.shopee.co.th/1LgQQtTC4P",
+      "status": "import_link",
+      "item_id": "",
+      "shop_id": "",
+      "error": ""
+    },
+    "_verified_import": {
+      "title": "GOOJODOQ หูฟังไร้สาย คลิปออน บลูทู ธ 5.3 การเชื่อมต่อที่มั่นคง Smart Touch หูฟังบลูทูธ",
+      "identity": {
+        "source_url": "https://s.shopee.co.th/1LgQQtTC4P",
+        "product_url": "https://s.shopee.co.th/1LgQQtTC4P",
+        "status": "import_link",
+        "item_id": "",
+        "shop_id": "",
+        "error": ""
+      },
+      "method": "single_link_import"
+    }
+  },
+  "prepared_at": "2026-10-15T10:20:36",
+  "started_at": "2026-10-15T10:20:36",
+  "upload_retry_count": 1,
+  "upload_retry_at": "2026-10-15T10:28:15",
+  "upload_failure_evidence": "อัปโหลดไม่สำเร็จ",
+  "cancelled_at": "2026-10-15T10:42:35",
+  "failure_proof": {
+    "native_failure": "อัปโหลดไม่สำเร็จ",
+    "cancel_confirmation": "การดำเนินการนี้จะลบวิดีโอที่ยังไม่ได้โพสต์ ต้องการดำเนินการต่อหรือไม่",
+    "confirmed_action": "ตกลง",
+    "banner_removed": true
+  }
+}

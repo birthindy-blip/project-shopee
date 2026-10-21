@@ -1,0 +1,20 @@
+{
+  "https://s.shopee.co.th/1qciDcCcCa": {
+    "source_url": "https://s.shopee.co.th/1qciDcCcCa",
+    "status": "resolved",
+    "item_id": "43528306303",
+    "shop_id": "1370621972",
+    "product_url": "https://shopee.co.th/product/1370621972/43528306303",
+    "error": "",
+    "checked_at": "2026-10-14T20:13:23"
+  },
+  "https://s.shopee.co.th/113Ztxe1DI": {
+    "source_url": "https://s.shopee.co.th/113Ztxe1DI",
+    "status": "resolved",
+    "item_id": "25744390051",
+    "shop_id": "1505570169",
+    "product_url": "https://shopee.co.th/product/1505570169/25744390051",
+    "error": "",
+    "checked_at": "2026-10-14T20:58:23"
+  }
+}

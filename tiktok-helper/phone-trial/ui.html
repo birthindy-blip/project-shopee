@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-token" content="__APP_TOKEN__">
+<title>Shopee Video · จอมือถือและคิวโพสต์</title>
+<link rel="stylesheet" href="/ui.css">
+</head>
+<body><main>
+<header><div class="brand"><div class="logo" aria-hidden="true">S</div><div><h1>Shopee Video</h1><div class="muted">ดูจอมือถือและจัดการคิวโพสต์ในหน้าเดียว</div></div></div><span class="pill" id="appState" role="status">กำลังตรวจสถานะ…</span></header>
+<div class="overview">
+<section class="card"><div class="eyebrow">มือถือที่ใช้โพสต์</div><div class="phone-title" id="phoneModel">กำลังตรวจ…</div><div id="phoneState" class="status">รอข้อมูล</div><small id="phoneHint"></small></section>
+<section class="card"><div class="eyebrow">คิวที่เหลือ</div><div class="stat" id="pending">—</div><small>คลิปจากโฟลเดอร์ของคุณ</small></section>
+<section class="card"><div class="eyebrow">โพสต์วันนี้</div><div class="stat" id="today">—</div><small id="limitText">—</small><div><small id="totalHistory">—</small></div></section>
+</div>
+<div class="workspace">
+<section class="card viewer" aria-label="จอมือถือสด">
+<div class="live-toolbar"><h2 style="margin:0">จอมือถือ</h2><span class="live-indicator off" id="liveIndicator">รอเชื่อมต่อ</span></div>
+<div class="screen-well"><img id="phoneScreen" alt="ภาพหน้าจอมือถือที่เชื่อมต่อ" hidden><div class="screen-placeholder" id="screenPlaceholder">เสียบมือถือและอนุญาต USB debugging<br>ภาพหน้าจอจะแสดงที่นี่</div></div>
+<p class="screen-footer" id="screenTime" role="status">ภาพอัปเดตทุก 3 วินาที</p>
+<div class="viewer-buttons"><button id="previewToggle" aria-pressed="false">พักภาพสด</button><button id="expandScreen" disabled>ขยายจอ</button></div>
+<p class="muted" style="font-size:12px;margin-top:12px">พักภาพสดได้โดยไม่หยุดคิวโพสต์</p>
+</section>
+<div class="stack">
+<section class="card" id="runCard"><div class="row"><h2>ควบคุมการโพสต์</h2><span class="pill" id="modeLabel">โพสต์อัตโนมัติ</span></div>
+<div id="attentionBox" class="identity warn" hidden><h3 id="attentionTitle"></h3><p id="attentionMessage"></p><div class="actions"><button id="attentionCheckBtn">ยืนยันบนมือถือแล้ว · ตรวจอีกครั้ง</button></div></div>
+<div class="now"><div class="eyebrow">งานปัจจุบัน</div><div class="current-title" id="currentClip">กำลังอ่านสถานะ…</div><div class="current-step" id="currentStep"></div></div>
+<div class="actions main-actions"><button class="primary" id="startBtn" disabled>เริ่มโพสต์ต่อเนื่อง</button><button id="stopBtn" class="danger" disabled>หยุดคิว</button><button id="quickCheck" disabled>ตรวจมือถือ</button><button class="primary" id="publishBtn" hidden>โพสต์คลิปที่เตรียมไว้</button></div>
+<p class="muted" id="readyHint"></p><p id="preparedResult" class="good" hidden></p>
+<div class="settings-summary"><span id="delaySummary">พัก —</span><span id="cleanupSummary">ลบไฟล์ —</span><span>แคปชันและตะกร้าจากไฟล์ TXT</span></div>
+</section>
+<section class="card" id="logCard"><div class="row"><h2>กำลังทำอะไรอยู่</h2><span class="pill" id="jobState">ยังไม่มีงาน</span></div>
+<div id="promptBox" hidden><h3>โปรแกรมรอคุณตอบ</h3><p id="promptText"></p><div class="actions"><input id="answerInput" aria-label="คำตอบหรือหมายเลขปุ่ม" placeholder="หมายเลขปุ่ม / r / s"><button id="answerBtn">ส่งคำตอบ</button><button id="continueBtn">ทำแล้ว · ไปต่อ</button></div></div>
+<div id="logs">ขั้นตอนการทำงานจะแสดงที่นี่</div></section>
+<section class="card" id="queueCard"><details class="section-details"><summary>ดูคิวคลิปทั้งหมด <span class="queue-count" id="queueCount"></span></summary><p class="path" id="folderPath"></p><input class="queue-search" id="queueSearch" aria-label="ค้นหาคลิปในคิว" placeholder="ค้นหาชื่อคลิป…"><div id="clips"></div><p id="queueNotes" class="muted"></p></details></section>
+</div></div>
+<details class="card advanced section-details" id="advancedSettings"><summary>ตั้งค่าและเครื่องมือเพิ่มเติม</summary><div class="advanced-grid">
+<section id="phoneCard"><h2>เชื่อมต่อมือถือ</h2><label for="deviceSelect">มือถือที่จะใช้</label><select id="deviceSelect"><option value="">อัตโนมัติ เมื่อมีเครื่องพร้อมเพียงเครื่องเดียว</option></select><p class="device-note" id="deviceSerial"></p><div id="usbDevices" class="device-note"></div><div id="checks"></div><div class="actions"><button id="checkBtn">ตรวจมือถือที่เลือก</button><button id="refreshBtn">ค้นหามือถือใหม่</button></div><div class="guide" id="usbGuide"><strong>ต่อมือถือครั้งแรก</strong><ol><li>เสียบสาย USB ที่ส่งข้อมูลได้และปลดล็อกจอ</li><li>เปิดตัวเลือกสำหรับนักพัฒนา → USB debugging</li><li>กดอนุญาตคอมเครื่องนี้บนมือถือ</li><li>เลือกเครื่องแล้วกดตรวจมือถือ</li></ol><p>Redmi อาจต้องเปิด USB debugging (Security settings) ด้วย</p></div></section>
+<section id="settingsCard"><h2>ตั้งค่าคิว</h2><form id="settingsForm"><label for="folderInput">โฟลเดอร์คลิป</label><input id="folderInput" required><div class="actions"><button type="button" id="downloadsBtn">คลิปดาวน์โหลด</button><button type="button" id="projectBtn">คลิปในโปรเจค</button></div><label for="limitInput">เพดานคลิปต่อวัน</label><input id="limitInput" type="number" min="1" max="100" required><div class="split"><div><label for="delayMin">พักอย่างน้อย (นาที)</label><input id="delayMin" type="number" min="0" max="1440" step="0.1" required></div><div><label for="delayMax">พักไม่เกิน (นาที)</label><input id="delayMax" type="number" min="0" max="1440" step="0.1" required></div></div><div class="toggle"><input id="autoInput" type="checkbox"><label for="autoInput">เผยแพร่อัตโนมัติ<small style="display:block">เมื่อเริ่มคิว โปรแกรมจะเตรียมและกดโพสต์ให้</small></label></div><div class="actions"><button id="saveBtn" type="submit">บันทึกการตั้งค่า</button></div></form><div class="toggle"><input id="cleanupInput" type="checkbox"><label for="cleanupInput">ลบไฟล์หลังยืนยันโพสต์สำเร็จ<small style="display:block">คอมเข้าถังขยะ · มือถือลบเฉพาะไฟล์ที่โปรแกรมส่งเข้าเครื่อง</small></label></div></section>
+<section id="testCard"><h2>ทดสอบและทำทีละคลิป</h2><label for="prepareClip">คลิปที่จะทดสอบ</label><select id="prepareClip"></select><div class="actions"><button id="postOneBtn">ทดสอบโพสต์จริง 1 คลิป</button><button id="prepareBtn">เตรียมอย่างเดียว · ไม่เผยแพร่</button></div><p class="muted" style="font-size:12px">ทดสอบหนึ่งคลิปจะจบงานหลังคลิปนั้น ส่วนคิวต่อเนื่องใช้ปุ่มเริ่มด้านบน</p></section>
+<section id="productCard"><h2>ตรวจสินค้าที่ปัก</h2><div class="actions"><button id="productsBtn">ตรวจลิงก์คลิปที่เลือก</button></div><label for="basketClip">คลิปที่จะเทียบ</label><select id="basketClip"></select><div class="actions"><button id="basketBtn">ตรวจสินค้าบนมือถือ</button></div><div id="basketResult" class="identity">ยังไม่ได้เทียบสินค้าบนมือถือ</div></section>
+</div></details>
+<footer>โพสต์สำเร็จจึงลบไฟล์ · คลิปที่ยังไม่ยืนยันผลจะเก็บไว้</footer>
+</main>
+<dialog id="screenDialog"><div class="dialog-top"><strong>จอมือถือสด</strong><button id="closeScreen">ปิดจอขยาย</button></div><img id="largeScreen" alt="ภาพหน้าจอมือถือแบบขยาย"></dialog>
+<div id="toast" hidden role="status"></div><script src="/ui.js"></script><script src="/ui-preview.js"></script>
+</body></html>

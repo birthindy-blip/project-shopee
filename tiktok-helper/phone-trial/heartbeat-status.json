@@ -1,0 +1,13 @@
+{
+  "checked_at": "2026-10-16T11:53:55+07:00",
+  "user_requested_stop": true,
+  "automation_status": "PAUSED",
+  "queue_active": false,
+  "queue_stop_reason": "user_stopped",
+  "running": false,
+  "confirmed_today": 56,
+  "confirmed_total": 104,
+  "prepared_status": "posting",
+  "clip_key": "ชั้นวางรองเท้า 2-9ชั้น ชั้นเก็บรองเท้า รูปตัวX ซ้อนได้หลายชั.mp4|18947429",
+  "files_preserved": true
+}

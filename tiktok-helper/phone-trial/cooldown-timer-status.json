@@ -1,0 +1,45 @@
+{
+  "armed_at": "2026-10-16T18:13:25+07:00",
+  "resume_at_bangkok": "2026-10-16T19:13:25+07:00",
+  "duration_seconds": 3600,
+  "screen_off_confirmed": true,
+  "sleep_requested": false,
+  "keyguard_policy": [
+    "mKeyguardDrawComplete=false mWindowManagerDrawComplete=false",
+    "mStatusBar=Window{e5c1f76 u0 StatusBar} isStatusBarKeyguard=true",
+    "mTopIsFullscreen=false mKeyguardOccluded=false",
+    "mKeyguardOccludedChanged=false",
+    "mPendingKeyguardOccluded=false",
+    "mForceStatusBar=false mForceStatusBarFromKeyguard=true",
+    "KeyguardServiceDelegate",
+    "showing=true",
+    "deviceHasKeyguard=true",
+    "KeyguardStateMonitor",
+    "mIsShowing=true"
+  ],
+  "tests_passed": 213,
+  "ui_checks_passed": true,
+  "journal_hashes": {
+    "prepared.json": "a3f45f1436f2c71a2559a1096edd0ec94981ce62669b5a965e00099f57a5fa03",
+    "posted.json": "74b74984a99a9b94eb9fd87ec5603b4ae75a78ba97e594b7bf86db1376d74a7b",
+    "uploads.json": "8665a1d3a5607910737bf51bfccd350e13255898fff87dfc2cced4db5929446a"
+  },
+  "same_original_queue": true,
+  "remaining_key": "Woodpanda ชั้นวางของสแตนเลสเคลือบเซรามิก อเนกประสงค์น ทรงสี่.mp4|4518938",
+  "server_pid_before_reload": 24484,
+  "controller_version": "autonomous-post-v11-thermal-cooldown",
+  "controller_pid": 28932,
+  "verified_at": "2026-10-16T18:18:04+07:00",
+  "early_check_guard": {
+    "status": 400,
+    "message": "กำลังพักหน้าจอให้เครื่องเย็น เหลือ 3322 วินาที · กดหยุดคิวเพื่อยกเลิกตัวจับเวลา"
+  },
+  "preview_rest_guard": {
+    "status": 503,
+    "message": "กำลังพักหน้าจอให้เครื่องเย็น · ภาพสดจะกลับหลังครบเวลาพัก"
+  },
+  "keyguard_locked_confirmed": true,
+  "journals_unchanged": true,
+  "remaining_source_preserved": true,
+  "countdown_verified_in_browser": true
+}

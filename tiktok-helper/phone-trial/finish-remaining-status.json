@@ -1,0 +1,23 @@
+{
+  "requested_at": "2026-10-16T17:36:50",
+  "daily_limit": 74,
+  "delay_minutes": [
+    1,
+    2
+  ],
+  "today_before": 70,
+  "remaining_key": "Woodpanda ชั้นวางของสแตนเลสเคลือบเซรามิก อเนกประสงค์น ทรงสี่.mp4|4518938",
+  "same_original_queue": true,
+  "discarded_clips": 3,
+  "state": "one_hour_cooldown_timer_active",
+  "screen_sleep": "confirmed",
+  "temperature_c": 46.8,
+  "post_clicked": false,
+  "lock_guard_tests_passed": 179,
+  "tests_passed": 213,
+  "verified_at": "2026-10-16T17:48:41",
+  "auto_unlock_swipe": true,
+  "checked_at": "2026-10-16T17:59:59",
+  "resume_at": 1792152805.3763003,
+  "automatic_resume": true
+}

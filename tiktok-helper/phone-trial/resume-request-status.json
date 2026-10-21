@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-10-16T15:24:37+07:00",
+  "running": true,
+  "kind": "post",
+  "state": "running",
+  "confirmed_today": 57,
+  "confirmed_total": 105,
+  "daily_remaining": 13,
+  "ready_original_clips": 14,
+  "incomplete_original_clips_preserved": 3,
+  "delay_minutes": [
+    2,
+    3
+  ],
+  "attention": null,
+  "unconfirmed": null,
+  "original_batch_active": true,
+  "quota_fix_tests_passed": 165,
+  "last_logs": [
+    "   เหลือ 02:14",
+    "   เหลือ 02:08",
+    "   เหลือ 02:02",
+    "   เหลือ 01:56",
+    "   เหลือ 01:50",
+    "   เหลือ 01:44",
+    "   เหลือ 01:38",
+    "   เหลือ 01:32",
+    "   เหลือ 01:26",
+    "   เหลือ 01:20",
+    "   เหลือ 01:14",
+    "   เหลือ 01:08"
+  ]
+}

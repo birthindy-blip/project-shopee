@@ -1,0 +1,53 @@
+{
+  "status": "posted",
+  "clip_key": "ชั้นวางของรถเข็นพลาสติก 3 ชั้น พร้อมล้อเลื่อน+ที่จับ รถเข็นเ.mp4|19503363",
+  "clip_name": "ชั้นวางของรถเข็นพลาสติก 3 ชั้น พร้อมล้อเลื่อน+ที่จับ รถเข็นเ",
+  "serial": "9f629a607d94",
+  "remote": "/sdcard/DCIM/ShopeeVideoTrial/SV429087376d/sv_20261016_165827_181.mp4",
+  "clips_folder": "C:\\Users\\dark_\\Downloads\\ShopeeVideo",
+  "sources": {
+    "video": "f33f9c12b1d5fd228094aa447061f24a9aa3cbfbb69411ec71f569504fc78533",
+    "txt": "890574c970f72011d9bfba03b69acf538dbbd637d4a33f852c4556ed55f86ec8"
+  },
+  "context": {
+    "caption_full": "ชั้นนี้คือตัวช่วยจัดครัวที่เราเลิฟมาก ✨ เข็นไปตรงไหนก็ได้ หยิบของสะดวก ครัวดูโล่งเป็นระเบียบเลย ใครกำลังหาที่เก็บของเพิ่ม ต้องลองดูแล้วจะติดใจ",
+    "product": {
+      "source_url": "https://s.shopee.co.th/20w8PokIHK",
+      "product_url": "https://s.shopee.co.th/20w8PokIHK",
+      "status": "import_link",
+      "item_id": "",
+      "shop_id": "",
+      "error": ""
+    },
+    "_verified_import": {
+      "title": "ชั้นวางของรถเข็นพลาสติก 3 ชั้น พร้อมล้อเลื่อน+ที่จับ รถเข็นเก็บของ เคลื่อนย้ายสะดวก วางของในครัว รุ่นฮิต",
+      "identity": {
+        "source_url": "https://s.shopee.co.th/20w8PokIHK",
+        "product_url": "https://s.shopee.co.th/20w8PokIHK",
+        "status": "import_link",
+        "item_id": "",
+        "shop_id": "",
+        "error": ""
+      },
+      "method": "single_link_import"
+    }
+  },
+  "prepared_at": "2026-10-16T17:02:55",
+  "started_at": "2026-10-16T17:02:55",
+  "result": {
+    "status": "posted",
+    "clip_name": "ชั้นวางของรถเข็นพลาสติก 3 ชั้น พร้อมล้อเลื่อน+ที่จับ รถเข็นเ",
+    "clip_key": "ชั้นวางของรถเข็นพลาสติก 3 ชั้น พร้อมล้อเลื่อน+ที่จับ รถเข็นเ.mp4|19503363",
+    "cleanup": {
+      "pc": [
+        "C:\\Users\\dark_\\Downloads\\ShopeeVideo\\ชั้นวางของรถเข็นพลาสติก 3 ชั้น พร้อมล้อเลื่อน+ที่จับ รถเข็นเ.mp4",
+        "C:\\Users\\dark_\\Downloads\\ShopeeVideo\\ชั้นวางของรถเข็นพลาสติก 3 ชั้น พร้อมล้อเลื่อน+ที่จับ รถเข็นเ.txt"
+      ],
+      "phone": true,
+      "txt_kept_for_other_clip": false,
+      "error": ""
+    },
+    "evidence": "อัปโหลดสำเร็จ",
+    "serial": "9f629a607d94"
+  }
+}
